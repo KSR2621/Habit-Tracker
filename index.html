@@ -10,12 +10,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script>
-      // Shim process.env for the browser environment to prevent crashes
+      // Enhanced shim for the browser environment
       window.process = {
         env: {
           NODE_ENV: 'production',
-          API_KEY: '' // This will be injected by the environment if available
-        }
+          API_KEY: '' 
+        },
+        browser: true,
+        version: '',
+        nextTick: (fn) => setTimeout(fn, 0)
       };
     </script>
     <style>

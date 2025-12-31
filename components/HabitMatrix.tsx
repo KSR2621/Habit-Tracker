@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Habit, WeeklyGoal } from '../types';
-import { MONTHS_LIST } from '../constants';
+import { Habit, WeeklyGoal } from '../types.ts';
+import { MONTHS_LIST } from '../constants.tsx';
 
 interface HabitMatrixProps {
   month: string;
@@ -44,7 +44,7 @@ export const HabitMatrix: React.FC<HabitMatrixProps> = ({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-10">
-        {/* Weekly Focus Sidebar - Scroll on mobile */}
+        {/* Weekly Focus Sidebar */}
         <div className="lg:col-span-3 space-y-6">
            <div className="bg-gray-900 text-white p-6 rounded shadow-lg">
               <h3 className="text-xs font-black uppercase tracking-widest text-emerald-400 mb-6">Current Sprints</h3>

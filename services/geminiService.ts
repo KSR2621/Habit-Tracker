@@ -1,8 +1,7 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { Habit } from "../types";
+import { Habit } from "../types.ts";
 
-// Always use process.env.API_KEY directly as per SDK guidelines
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const getHabitInsights = async (habits: Habit[]) => {
@@ -15,7 +14,6 @@ export const getHabitInsights = async (habits: Habit[]) => {
       model: 'gemini-3-flash-preview',
       contents: prompt,
     });
-    // Use .text property directly
     return response.text || "Operational efficiency is optimal. Prioritize high-impact annual milestones to maintain Q1 momentum.";
   } catch (error) {
     console.error("Gemini Insight Error:", error);

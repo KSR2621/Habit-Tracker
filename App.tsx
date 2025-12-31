@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { HabitMatrix } from './components/HabitMatrix';
-import { SetupView } from './components/SetupView';
-import { AnnualGoalsView } from './components/AnnualGoalsView';
-import { DashboardView } from './components/DashboardView';
-import { INITIAL_HABITS, MONTHLY_GOALS, ANNUAL_CATEGORIES } from './constants';
-import { Habit, Tab, MonthlyGoal, AnnualCategory, PlannerConfig, WeeklyGoal } from './types';
+import { HabitMatrix } from './components/HabitMatrix.tsx';
+import { SetupView } from './components/SetupView.tsx';
+import { AnnualGoalsView } from './components/AnnualGoalsView.tsx';
+import { DashboardView } from './components/DashboardView.tsx';
+import { INITIAL_HABITS, MONTHLY_GOALS, ANNUAL_CATEGORIES } from './constants.tsx';
+import { Habit, Tab, MonthlyGoal, AnnualCategory, PlannerConfig, WeeklyGoal } from './types.ts';
 
 // Storage Keys
 const STORAGE_KEYS = {
@@ -248,4 +248,5 @@ const App: React.FC = () => {
   );
 };
 
+// Fix: Add default export to resolve import error in index.tsx
 export default App;
