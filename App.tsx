@@ -7,22 +7,61 @@ import { DashboardView } from './components/DashboardView';
 import { INITIAL_HABITS, MONTHLY_GOALS, ANNUAL_CATEGORIES } from './constants';
 import { Habit, Tab, MonthlyGoal, AnnualCategory, PlannerConfig, WeeklyGoal } from './types';
 
+// Storage Keys
+const STORAGE_KEYS = {
+  HABITS: 'habitos_habits_v1',
+  MONTHLY_GOALS: 'habitos_monthly_goals_v1',
+  WEEKLY_GOALS: 'habitos_weekly_goals_v1',
+  ANNUAL_CATEGORIES: 'habitos_annual_categories_v1',
+  CONFIG: 'habitos_config_v1',
+};
+
 const App: React.FC = () => {
-  const [habits, setHabits] = useState<Habit[]>(INITIAL_HABITS);
-  const [monthlyGoals, setMonthlyGoals] = useState<MonthlyGoal[]>(MONTHLY_GOALS);
-  const [weeklyGoals, setWeeklyGoals] = useState<WeeklyGoal[]>([]);
-  const [annualCategories, setAnnualCategories] = useState<AnnualCategory[]>(ANNUAL_CATEGORIES);
-  const [config, setConfig] = useState<PlannerConfig>({
+  // Persistence Helper
+  const getInitialState = <T,>(key: string, defaultValue: T): T => {
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(`Error parsing storage for ${key}`, e);
+      }
+    }
+    return defaultValue;
+  };
+
+  const [habits, setHabits] = useState<Habit[]>(() => getInitialState(STORAGE_KEYS.HABITS, INITIAL_HABITS));
+  const [monthlyGoals, setMonthlyGoals] = useState<MonthlyGoal[]>(() => getInitialState(STORAGE_KEYS.MONTHLY_GOALS, MONTHLY_GOALS));
+  const [weeklyGoals, setWeeklyGoals] = useState<WeeklyGoal[]>(() => getInitialState(STORAGE_KEYS.WEEKLY_GOALS, []));
+  const [annualCategories, setAnnualCategories] = useState<AnnualCategory[]>(() => getInitialState(STORAGE_KEYS.ANNUAL_CATEGORIES, ANNUAL_CATEGORIES));
+  const [config, setConfig] = useState<PlannerConfig>(() => getInitialState(STORAGE_KEYS.CONFIG, {
     year: '2026',
     showVisionBoard: true,
     activeMonths: ['January'],
-  });
+  }));
   const [activeTab, setActiveTab] = useState<Tab>('January');
 
-  // Sync document title with the selected year
+  // Persistence Effects
   useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.HABITS, JSON.stringify(habits));
+  }, [habits]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.MONTHLY_GOALS, JSON.stringify(monthlyGoals));
+  }, [monthlyGoals]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.WEEKLY_GOALS, JSON.stringify(weeklyGoals));
+  }, [weeklyGoals]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.ANNUAL_CATEGORIES, JSON.stringify(annualCategories));
+  }, [annualCategories]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(config));
     document.title = `${config.year} Habit Tracker - Strategic Architecture`;
-  }, [config.year]);
+  }, [config]);
 
   const toggleHabitCell = (habitId: string, day: number, month: string) => {
     setHabits(prev => prev.map(h => {
