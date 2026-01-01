@@ -10,6 +10,11 @@ type InfoTab = 'Privacy' | 'Security' | 'Infrastructure' | null;
 export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
   const [activeInfoTab, setActiveInfoTab] = useState<InfoTab>(null);
 
+  const redirectToWhatsApp = (message: string) => {
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/918789548725?text=${encodedMessage}`, '_blank');
+  };
+
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
@@ -55,7 +60,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         <div className="hidden md:flex items-center gap-10">
           <button onClick={() => scrollToSection('methodology')} className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 hover:text-gray-900 transition-colors">Methodology</button>
           <button onClick={() => scrollToSection('architecture')} className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 hover:text-gray-900 transition-colors">Architecture</button>
-          <button onClick={() => scrollToSection('blueprint')} className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 hover:text-gray-900 transition-colors">Blueprint</button>
+          <button onClick={() => scrollToSection('pricing')} className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 hover:text-gray-900 transition-colors">Pricing</button>
           <button 
             onClick={onStart}
             className="bg-gray-900 text-white px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-gray-200"
@@ -101,7 +106,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               <img 
                 src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=2070&auto=format&fit=crop" 
                 alt="Workspace" 
-                className="w-full aspect-[4/5] object-cover rounded-[3rem] grayscale-[0.5] hover:grayscale-0 transition-all duration-1000"
+                className="w-full aspect-[4/5] font-black object-cover rounded-[3rem] grayscale-[0.5] hover:grayscale-0 transition-all duration-1000"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 via-transparent to-transparent" />
               
@@ -194,6 +199,94 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section id="pricing" className="py-40 px-8 bg-white scroll-mt-24 relative overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-1 bg-gradient-to-r from-transparent via-gray-100 to-transparent" />
+        
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-24">
+            <div className="inline-block px-6 py-2 bg-[#F1F5F9] rounded-full mb-6">
+              <span className="text-[11px] font-black uppercase tracking-[0.4em] text-[#76C7C0]">Deployment Tiers</span>
+            </div>
+            <h2 className="text-[4rem] lg:text-[5.5rem] font-black tracking-tighter text-gray-900 mb-6 italic leading-none">Investment in <span className="text-[#76C7C0] not-italic">Execution.</span></h2>
+            <p className="text-xl text-gray-500 max-w-2xl mx-auto font-medium">Select your synchronization tier. Performance architecture for every level of commitment.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-5xl mx-auto">
+            {/* Monthly Plan */}
+            <div className="bg-white border-2 border-gray-100 p-12 rounded-[4rem] shadow-[0_30px_60px_rgba(0,0,0,0.02)] relative group hover:border-[#76C7C0]/30 transition-all duration-700">
+              <div className="mb-10">
+                <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight italic mb-2">Tactical Cycle</h3>
+                <p className="text-sm font-medium text-gray-400">Monthly Performance Sync</p>
+              </div>
+              <div className="flex items-baseline gap-4 mb-10">
+                <span className="text-6xl font-black text-gray-900 italic tracking-tighter">$4</span>
+                <span className="text-2xl font-black text-gray-300 line-through decoration-red-400 decoration-4">$9</span>
+                <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest italic">/ Month</span>
+              </div>
+              <ul className="space-y-6 mb-12">
+                {['Daily Ritual Matrix', 'Monthly Target Architecture', 'Gemini AI Insights', 'Cross-Device Sync'].map((feat, i) => (
+                  <li key={i} className="flex items-center gap-4">
+                    <div className="w-5 h-5 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <span className="text-[13px] font-bold text-gray-600">{feat}</span>
+                  </li>
+                ))}
+              </ul>
+              <button 
+                onClick={() => redirectToWhatsApp("Hello! I am interested in the Tactical Cycle (Monthly) plan for NextYou21. Please help me with the setup.")}
+                className="w-full py-5 bg-white border-2 border-gray-900 text-gray-900 rounded-2xl font-black text-lg hover:bg-gray-900 hover:text-white transition-all shadow-lg active:scale-95"
+              >
+                Start Trial
+              </button>
+            </div>
+
+            {/* Yearly Plan */}
+            <div className="bg-[#111827] p-12 rounded-[4rem] shadow-[0_50px_100px_rgba(0,0,0,0.2)] relative group border border-white/5 overflow-hidden">
+              <div className="absolute top-0 right-0 px-8 py-3 bg-[#76C7C0] text-gray-900 font-black text-[10px] uppercase tracking-[0.3em] rounded-bl-[2rem]">Most Strategic</div>
+              <div className="mb-10">
+                <h3 className="text-2xl font-black text-white uppercase tracking-tight italic mb-2">Strategic Vision</h3>
+                <p className="text-sm font-medium text-gray-500">Annual Architecture Bundle</p>
+              </div>
+              <div className="flex items-baseline gap-4 mb-10">
+                <span className="text-6xl font-black text-[#76C7C0] italic tracking-tighter">$29</span>
+                <span className="text-2xl font-black text-white/20 line-through decoration-[#76C7C0]/50 decoration-4">$50</span>
+                <span className="text-[11px] font-black text-white/40 uppercase tracking-widest italic">/ Year</span>
+              </div>
+              <ul className="space-y-6 mb-12">
+                {['Everything in Monthly', 'Annual Vision Board', 'Priority AI Processing', 'Beta Feature Access'].map((feat, i) => (
+                  <li key={i} className="flex items-center gap-4">
+                    <div className="w-5 h-5 bg-[#76C7C0]/10 rounded-full flex items-center justify-center text-[#76C7C0]">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <span className="text-[13px] font-bold text-white/80">{feat}</span>
+                  </li>
+                ))}
+              </ul>
+              <button 
+                onClick={() => redirectToWhatsApp("Hello! I am interested in the Strategic Vision (Annual) plan for NextYou21. Please help me with the setup.")}
+                className="w-full py-5 bg-[#76C7C0] text-gray-900 rounded-2xl font-black text-lg hover:scale-[1.02] transition-all shadow-xl shadow-[#76C7C0]/10 active:scale-95"
+              >
+                Access Full Stack
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-20 text-center">
+            <div className="inline-flex flex-col items-center p-10 bg-gray-50 rounded-[3rem] border border-gray-100 max-w-2xl mx-auto shadow-sm">
+              <span className="text-[11px] font-black uppercase tracking-[0.6em] text-gray-400 mb-4 italic underline decoration-gray-200 decoration-2">Legacy Protocol Access</span>
+              <p className="text-2xl font-black text-gray-900 italic tracking-tight mb-6">
+                Redeem Architect Coupon: <span className="text-[#76C7C0] px-4 py-1.5 bg-white border border-gray-100 rounded-xl shadow-inner not-italic">FREE21</span>
+              </p>
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest leading-relaxed">
+                * SYSTEM NOTICE: Use the code above for 100% complimentary architectural access for 3 months.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Blueprint Section */}
       <section id="blueprint" className="py-40 px-8 bg-[#FDFDFB] scroll-mt-24">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
@@ -248,7 +341,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               NextYou21 bridges the gap between your highest aspirations and your lowest-level actions. Our unique Execution Hierarchy ensures every capital allocation and ritual tick is a direct step toward your legacy.
             </p>
             <button 
-              onClick={onStart}
+              onClick={() => redirectToWhatsApp("Hello! I'm interested in the NextYou21 Blueprint for life architecture. Can you help me get started?")}
               className="px-12 py-6 bg-gray-900 text-white rounded-2xl font-black text-xl hover:bg-black transition-all shadow-2xl hover:scale-[1.02] active:scale-95"
             >
               Initialize My Architecture

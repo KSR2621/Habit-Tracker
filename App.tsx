@@ -1,11 +1,12 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HabitMatrix } from './components/HabitMatrix.tsx';
 import { SetupView } from './components/SetupView.tsx';
 import { AnnualGoalsView } from './components/AnnualGoalsView.tsx';
 import { Dashboard as MainDashboard } from './pages/Dashboard.tsx';
 import { LandingPage } from './pages/LandingPage.tsx';
 import { AuthView } from './components/AuthView.tsx';
+import { PaymentGate } from './components/PaymentGate.tsx';
 import { CreateHabitModal } from './components/CreateHabitModal.tsx';
 import { INITIAL_HABITS, MONTHLY_GOALS, ANNUAL_CATEGORIES, MONTHS_LIST } from './constants.tsx';
 import { auth, db } from './services/firebase.ts';
@@ -14,6 +15,7 @@ import { Habit, Tab, MonthlyGoal, AnnualCategory, PlannerConfig, WeeklyGoal } fr
 const App: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [isPaid, setIsPaid] = useState(false);
   const [hasStarted, setHasStarted] = useState(() => {
     return localStorage.getItem('habitos_has_started') === 'true';
   });
@@ -54,6 +56,7 @@ const App: React.FC = () => {
       if (doc.exists) {
         const data = doc.data();
         if (data) {
+          if (data.isPaid !== undefined) setIsPaid(data.isPaid);
           if (data.habits && data.habits.length > 0) setHabits(data.habits);
           if (data.monthlyGoals) setMonthlyGoals(data.monthlyGoals);
           if (data.weeklyGoals) setWeeklyGoals(data.weeklyGoals);
@@ -113,6 +116,11 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => auth.signOut();
+
+  const handlePaymentSuccess = () => {
+    setIsPaid(true);
+    syncToCloud({ isPaid: true });
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -223,8 +231,17 @@ const App: React.FC = () => {
 
   if (authLoading) return null;
 
-  if (!hasStarted) return <LandingPage onStart={() => setHasStarted(true)} />;
-  if (!user) return <AuthView onSuccess={() => {}} onBack={() => setHasStarted(false)} />;
+  if (!hasStarted) return <LandingPage onStart={() => {
+    localStorage.setItem('habitos_has_started', 'true');
+    setHasStarted(true);
+  }} />;
+  
+  if (!user) return <AuthView onSuccess={() => {}} onBack={() => {
+    localStorage.removeItem('habitos_has_started');
+    setHasStarted(false);
+  }} />;
+
+  if (!isPaid) return <PaymentGate userEmail={user.email} onSuccess={handlePaymentSuccess} />;
 
   // Define the chronological list of tabs
   const mainTabs = ['Dashboard', 'Setup'];

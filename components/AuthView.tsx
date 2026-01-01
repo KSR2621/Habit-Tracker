@@ -311,6 +311,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onBack }) => {
             fullName,
             contact: fullContact,
             email,
+            isPaid: false,
             createdAt: new Date().toISOString(),
             habits: [],
             monthlyGoals: [],
