@@ -15,7 +15,8 @@ import { Habit, Tab, MonthlyGoal, AnnualCategory, PlannerConfig, WeeklyGoal } fr
 const App: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [isPaid, setIsPaid] = useState(false);
+  const [isPaid, setIsPaid] = useState(true); // Default to true for old users, snapshot will correct for new users
+  const [userCreatedAt, setUserCreatedAt] = useState<string | null>(null);
   const [hasStarted, setHasStarted] = useState(() => {
     return localStorage.getItem('habitos_has_started') === 'true';
   });
@@ -56,13 +57,24 @@ const App: React.FC = () => {
       if (doc.exists) {
         const data = doc.data();
         if (data) {
-          if (data.isPaid !== undefined) setIsPaid(data.isPaid);
+          // Only enforce payment if the flag is explicitly set to false (new user flow)
+          // If the flag is missing, it's an old user account - allow interaction.
+          if (data.isPaid !== undefined) {
+            setIsPaid(data.isPaid);
+          } else {
+            setIsPaid(true); // Grandfathering old users
+          }
+          
+          if (data.createdAt) setUserCreatedAt(data.createdAt);
           if (data.habits && data.habits.length > 0) setHabits(data.habits);
           if (data.monthlyGoals) setMonthlyGoals(data.monthlyGoals);
           if (data.weeklyGoals) setWeeklyGoals(data.weeklyGoals);
           if (data.annualCategories) setAnnualCategories(data.annualCategories);
           if (data.config) setConfig(prev => ({ ...prev, ...data.config }));
         }
+      } else {
+        // If document doesn't exist, we'll wait for the auth flow to create it.
+        // During registration, the doc is created with isPaid: false.
       }
     });
     return () => unsubscribe();
@@ -115,7 +127,10 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogout = () => auth.signOut();
+  const handleLogout = () => {
+    auth.signOut();
+    setIsPaid(true); // Reset to default for next potential login
+  };
 
   const handlePaymentSuccess = () => {
     setIsPaid(true);
@@ -196,6 +211,8 @@ const App: React.FC = () => {
           <MainDashboard 
             habits={habits} 
             config={config}
+            userCreatedAt={userCreatedAt}
+            userEmail={user?.email}
             onUpdateConfig={(newConf) => {
               setConfig(newConf);
               syncToCloud({ config: newConf });
@@ -323,7 +340,7 @@ const App: React.FC = () => {
                 onClick={() => setActiveTab(tab)}
                 className={`tab-button ${activeTab === tab ? 'active' : ''}`}
               >
-                {tab}
+                {tab} 
               </button>
             ))}
           </div>
