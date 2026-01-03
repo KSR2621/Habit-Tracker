@@ -45,7 +45,7 @@ export const SetupView: React.FC<SetupViewProps> = ({
   onUpdateMonthlyGoals,
   config,
   onUpdateConfig,
-  subscriptionRemaining = 90,
+  subscriptionRemaining = 0,
   allTabs
 }) => {
   const [selectedConfigMonth, setSelectedConfigMonth] = useState<string>(MONTHS_LIST[0]);
@@ -127,9 +127,16 @@ export const SetupView: React.FC<SetupViewProps> = ({
           <h3 className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em] mb-4 border-b border-white/5 pb-2 italic">Access Fidelity</h3>
           <div className="flex items-end justify-between">
             <div>
-              <p className="text-3xl font-black text-white italic tracking-tighter">{subscriptionRemaining}</p>
-              <p className="text-[8px] font-bold text-gray-500 uppercase tracking-widest">Days Remaining</p>
+              <p className="text-3xl font-black text-white italic tracking-tighter">
+                {subscriptionRemaining > 500 ? '∞' : subscriptionRemaining}
+              </p>
+              <p className="text-[8px] font-bold text-gray-500 uppercase tracking-widest">
+                {subscriptionRemaining > 500 ? 'Lifetime Access' : 'Days Remaining'}
+              </p>
             </div>
+            {subscriptionRemaining > 0 && subscriptionRemaining <= 7 && (
+               <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shadow-[0_0_10px_rgba(244,63,94,0.8)]" />
+            )}
           </div>
         </div>
 

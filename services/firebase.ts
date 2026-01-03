@@ -1,10 +1,8 @@
 
-// Use compat imports to support v8-style global syntax in Firebase v9+
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 
-// Note: In a real app, these would be loaded via environment variables.
 const firebaseConfig = {
   apiKey: "AIzaSyB8_Qg6z6BhXX2cjdZm0ux6bO-0bATbObE",
   authDomain: "to-do-14502.firebaseapp.com",
@@ -15,14 +13,18 @@ const firebaseConfig = {
   measurementId: "G-7TNYJG6X7K"
 };
 
-// Initialize Firebase with v8-style check for existing apps to prevent double initialization
+// Initialize Firebase
 const app = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : firebase.app();
 
-// Use instance methods for auth and firestore as per v8 API
 export const auth = firebase.auth();
 export const db = firebase.firestore();
 
-// Ensure persistence is set to LOCAL (this is usually default, but explicit is better for UX guarantees)
+// Verification log
+console.log("Firebase: Initialized for project:", firebaseConfig.projectId);
+
+// Set persistence to LOCAL
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((error) => {
-  console.error("Auth Persistence Error:", error);
+  console.error("Firebase Auth: Persistence failed", error);
 });
+
+export default firebase;

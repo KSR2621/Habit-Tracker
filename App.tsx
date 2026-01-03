@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { HabitMatrix } from './components/HabitMatrix.tsx';
 import { SetupView } from './components/SetupView.tsx';
@@ -6,13 +5,18 @@ import { AnnualGoalsView } from './components/AnnualGoalsView.tsx';
 import { LandingPage } from './pages/LandingPage.tsx';
 import { AuthView } from './components/AuthView.tsx';
 import { PaymentGate } from './components/PaymentGate.tsx';
+import { AdminPage } from './pages/AdminPage.tsx';
 import { CreateHabitModal } from './components/CreateHabitModal.tsx';
 import { INITIAL_HABITS, MONTHLY_GOALS, ANNUAL_CATEGORIES, MONTHS_LIST } from './constants.tsx';
 import { auth, db } from './services/firebase.ts';
 import { Habit, Tab, MonthlyGoal, AnnualCategory, PlannerConfig, WeeklyGoal } from './types.ts';
 
+const ADMIN_EMAIL = 'admin@nextyou21.io';
+
 const App: React.FC = () => {
   const [user, setUser] = useState<any>(null);
+  const [userStatus, setUserStatus] = useState<'pending' | 'approved' | 'blocked' | null>(null);
+  const [validUntil, setValidUntil] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [initialTabSet, setInitialTabSet] = useState(false);
@@ -50,6 +54,8 @@ const App: React.FC = () => {
     tabOrder: ['Setup', 'Annual Goals', 'January'],
   });
 
+  const isAdmin = user?.email === ADMIN_EMAIL;
+
   const isDummyData = habits.length > 0 && habits[0].id === '1' && habits[0].name === INITIAL_HABITS[0].name;
 
   // Calculate sorted tabs based on saved tabOrder
@@ -57,9 +63,9 @@ const App: React.FC = () => {
     const available = ['Setup'];
     if (config.showVisionBoard) available.push('Annual Goals');
     (config.activeMonths || []).forEach(m => available.push(m));
+    if (isAdmin) available.push('Admin Control');
     
     let baseOrder = config.tabOrder || [];
-    // Filter out removed tabs (like 'Architecture')
     baseOrder = baseOrder.filter(t => t !== 'Architecture');
 
     if (baseOrder.length > 0) {
@@ -67,7 +73,6 @@ const App: React.FC = () => {
       const remaining = available.filter(t => !order.includes(t));
       const fullList = [...order, ...remaining];
       
-      // While dragging, we swap positions live in the view
       if (isDragging.current && dragIndex !== null && dragCurrentIndex !== null) {
         const liveOrder = [...fullList];
         const [removed] = liveOrder.splice(dragIndex, 1);
@@ -78,7 +83,7 @@ const App: React.FC = () => {
       return fullList;
     }
     return available;
-  }, [config.tabOrder, config.showVisionBoard, config.activeMonths, dragIndex, dragCurrentIndex]);
+  }, [config.tabOrder, config.showVisionBoard, config.activeMonths, isAdmin, dragIndex, dragCurrentIndex]);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
@@ -102,6 +107,21 @@ const App: React.FC = () => {
       if (doc.exists) {
         const data = doc.data();
         if (data) {
+          // --- TEMPORAL ACCESS CHECK ---
+          let currentStatus = data.status || 'pending';
+          const cloudValidUntil = data.validUntil;
+          
+          if (currentStatus === 'approved' && cloudValidUntil) {
+            if (new Date(cloudValidUntil) < new Date()) {
+              currentStatus = 'pending';
+              // Update cloud to reflect automatic expiration
+              db.collection('users').doc(user.uid).update({ status: 'pending', validUntil: null });
+            }
+          }
+
+          setUserStatus(currentStatus);
+          setValidUntil(cloudValidUntil || null);
+
           const cloudPaid = data.isPaid === true;
           
           if (cloudPaid) {
@@ -214,9 +234,8 @@ const App: React.FC = () => {
       isDragging.current = true;
       setDragIndex(index);
       setDragCurrentIndex(index);
-      // Vibrate if mobile
       if ('vibrate' in navigator) navigator.vibrate(50);
-    }, 400); // Slightly faster long press
+    }, 400);
   };
 
   const handleDragOver = (index: number) => {
@@ -232,7 +251,6 @@ const App: React.FC = () => {
     }
 
     if (isDragging.current && dragIndex !== null && dragCurrentIndex !== null && dragIndex !== dragCurrentIndex) {
-      // Finalize the reordering to permanent state
       const newTabs = [...allTabs];
       setConfig(prev => ({ ...prev, tabOrder: newTabs }));
       syncToCloud({ config: { ...config, tabOrder: newTabs } });
@@ -243,8 +261,48 @@ const App: React.FC = () => {
     setDragCurrentIndex(null);
   };
 
+  // Calculate real-time subscription remaining
+  const subscriptionRemaining = useMemo(() => {
+    if (!validUntil) return 0;
+    const expiry = new Date(validUntil);
+    const now = new Date();
+    const diff = expiry.getTime() - now.getTime();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  }, [validUntil]);
+
   const renderContent = () => {
+    if (userStatus === 'blocked') {
+      return (
+        <div className="flex flex-col items-center justify-center p-20 text-center space-y-6">
+          <div className="w-20 h-20 bg-rose-500 rounded-3xl flex items-center justify-center text-white text-4xl shadow-xl shadow-rose-100">🚫</div>
+          <div>
+            <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase">Access Denied.</h2>
+            <p className="text-slate-500 font-medium max-w-md mt-4 italic">"Your architectural ledger has been suspended due to protocol violations. Please contact the system administrator for restoration."</p>
+          </div>
+          <button onClick={handleLogout} className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[11px]">Logout Session</button>
+        </div>
+      );
+    }
+
+    if (userStatus === 'pending' && isPaid) {
+      return (
+        <div className="flex flex-col items-center justify-center p-20 text-center space-y-6">
+          <div className="w-24 h-24 bg-amber-500 rounded-[3rem] flex items-center justify-center text-white text-4xl shadow-xl animate-float">⏳</div>
+          <div className="max-w-xl">
+            <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase leading-tight">Verification In Progress.</h2>
+            <p className="text-slate-400 font-medium mt-4 italic">"Your payment has been received. Your architectural clearance is currently being processed by the system administrator. Access will be granted shortly."</p>
+          </div>
+          <div className="flex gap-4">
+             <button onClick={() => window.location.reload()} className="px-8 py-3 bg-slate-900 text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-transform">Refresh Status</button>
+             <button onClick={handleLogout} className="px-8 py-3 bg-white border border-slate-200 text-slate-400 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-rose-50 hover:text-rose-500 transition-colors">Sign Out</button>
+          </div>
+        </div>
+      );
+    }
+
     switch (activeTab) {
+      case 'Admin Control':
+        return <AdminPage />;
       case 'Setup':
         return (
           <SetupView 
@@ -280,7 +338,7 @@ const App: React.FC = () => {
               setConfig(finalConf);
               syncToCloud({ config: finalConf });
             }}
-            subscriptionRemaining={90}
+            subscriptionRemaining={subscriptionRemaining}
             allTabs={allTabs}
           />
         );
@@ -309,7 +367,6 @@ const App: React.FC = () => {
               const existing = weeklyGoals.find(w => w.month === month && w.weekIndex === weekIndex);
               let newWeekly;
               if (existing) {
-                // Fixed: Correctly using 'goals' instead of undefined 'newGoals'
                 newWeekly = weeklyGoals.map(w => (w.month === month && w.weekIndex === weekIndex) ? { ...w, goals: goals } : w);
               } else {
                 newWeekly = [...weeklyGoals, { month, weekIndex, goals }];
@@ -346,6 +403,7 @@ const App: React.FC = () => {
   };
 
   const getTabTheme = (tab: string) => {
+    if (tab === 'Admin Control') return 'bg-rose-600 text-white';
     if (tab === 'Setup') return 'bg-slate-800 text-white';
     if (tab === 'Annual Goals') return 'bg-[#76C7C0] text-white';
     
