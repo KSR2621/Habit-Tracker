@@ -25,6 +25,7 @@ export interface Coupon {
   id: string;
   code: string;
   discount: number; // 0-100
+  planType: 'tactical' | 'strategic' | 'all';
   active: boolean;
   createdAt: string;
 }

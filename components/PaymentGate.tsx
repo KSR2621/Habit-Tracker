@@ -1,5 +1,7 @@
+
 import React, { useState } from 'react';
 import { db } from '../services/firebase.ts';
+import { Coupon } from '../types.ts';
 
 interface PaymentGateProps {
   onSuccess: () => void;
@@ -8,29 +10,28 @@ interface PaymentGateProps {
 }
 
 export const PaymentGate: React.FC<PaymentGateProps> = ({ onSuccess, userEmail, userId }) => {
-  const [coupon, setCoupon] = useState('');
+  const [couponCode, setCouponCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [discountApplied, setDiscountApplied] = useState<number>(0);
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
 
   const handleUPIPayment = (amount: number, planName: string) => {
-    const discountedAmount = amount - (amount * (discountApplied / 100));
-    const finalAmount = Math.max(0, discountedAmount);
+    const finalAmount = calculatePrice(amount, planName.toLowerCase() as any);
     
     // If it's 0 due to 100% coupon, go to clearance directly
-    if (finalAmount === 0) {
-      handleCompleteAccess(90); // Grants 90 days for promo codes
+    if (parseFloat(finalAmount) === 0) {
+      handleCompleteAccess(planName === 'Strategic' ? 365 : 90, true); 
       return;
     }
 
     const upiId = "kunalsinghrajput2125@okicici";
     const name = "NextYou21";
     const note = encodeURIComponent(`NextYou21 ${planName} Plan - ${userEmail}`);
-    const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${finalAmount.toFixed(2)}&cu=INR&tn=${note}`;
+    const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${finalAmount}&cu=INR&tn=${note}`;
     window.location.href = upiLink;
   };
 
-  const handleCompleteAccess = async (days: number) => {
+  const handleCompleteAccess = async (days: number, isAuto: boolean = false) => {
     setLoading(true);
     setError('');
     try {
@@ -41,7 +42,8 @@ export const PaymentGate: React.FC<PaymentGateProps> = ({ onSuccess, userEmail, 
         isPaid: true,
         status: 'approved',
         validUntil: expiry.toISOString(),
-        approvedAt: new Date().toISOString()
+        approvedAt: new Date().toISOString(),
+        autoApproved: isAuto // Mark as auto-approved for admin tracking
       });
       onSuccess();
     } catch (err: any) {
@@ -53,25 +55,23 @@ export const PaymentGate: React.FC<PaymentGateProps> = ({ onSuccess, userEmail, 
   };
 
   const handleApplyCoupon = async () => {
-    if (!coupon.trim()) return;
+    if (!couponCode.trim()) return;
     setLoading(true);
     setError('');
     try {
-      const query = await db.collection('coupons').where('code', '==', coupon.toUpperCase()).get();
+      const query = await db.collection('coupons').where('code', '==', couponCode.toUpperCase()).get();
       
       if (query.empty) {
         setError('Invalid Protocol Code. Access Denied.');
+        setAppliedCoupon(null);
       } else {
-        const data = query.docs[0].data();
+        const data = query.docs[0].data() as Coupon;
         if (!data.active) {
           setError('This protocol code has been deactivated by the system.');
+          setAppliedCoupon(null);
         } else {
-          const discount = data.discount || 0;
-          setDiscountApplied(discount);
-          
-          if (discount === 100) {
-            await handleCompleteAccess(90); // 100% discount gives automatic 90-day clearance
-          }
+          setAppliedCoupon(data);
+          setError('');
         }
       }
     } catch (err: any) {
@@ -85,6 +85,16 @@ export const PaymentGate: React.FC<PaymentGateProps> = ({ onSuccess, userEmail, 
     const phoneNumber = "917218512043";
     const message = encodeURIComponent(`Hello! I'm an architect (${userEmail}) needing assistance with the NextYou21 payment protocol.`);
     window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
+  };
+
+  const calculatePrice = (base: number, planKey: 'tactical' | 'strategic') => {
+    if (!appliedCoupon) return base.toFixed(0);
+    
+    const isApplicable = appliedCoupon.planType === 'all' || appliedCoupon.planType === planKey;
+    if (!isApplicable) return base.toFixed(0);
+
+    const discounted = base - (base * (appliedCoupon.discount / 100));
+    return Math.max(0, discounted).toFixed(0);
   };
 
   return (
@@ -112,16 +122,21 @@ export const PaymentGate: React.FC<PaymentGateProps> = ({ onSuccess, userEmail, 
               <input 
                 type="text"
                 placeholder="PROMO2026"
-                value={coupon}
-                onChange={(e) => setCoupon(e.target.value.toUpperCase())}
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                 className="w-full bg-slate-50 border-2 border-slate-100 focus:border-[#76C7C0] focus:bg-white rounded-3xl px-8 py-5 outline-none font-black text-2xl tracking-[0.2em] transition-all uppercase placeholder:text-slate-200"
               />
               {error && <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest italic">{error}</p>}
-              {discountApplied > 0 && <p className="text-[12px] font-black text-emerald-500 uppercase tracking-widest italic animate-pulse">✓ {discountApplied}% Performance Discount applied</p>}
+              {appliedCoupon && (
+                <div className="flex flex-col gap-1">
+                  <p className="text-[12px] font-black text-emerald-500 uppercase tracking-widest italic animate-pulse">✓ {appliedCoupon.discount}% Performance Discount applied</p>
+                  <p className="text-[8px] font-bold text-slate-400 uppercase">Applicable to: {appliedCoupon.planType}</p>
+                </div>
+              )}
               
               <button 
                 onClick={handleApplyCoupon}
-                disabled={loading || !coupon}
+                disabled={loading || !couponCode}
                 className="w-full bg-slate-900 text-white py-5 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-[#76C7C0] hover:text-white transition-all shadow-2xl disabled:opacity-30 disabled:grayscale active:scale-95"
               >
                 {loading ? 'VERIFYING PROTOCOL...' : 'VERIFY ARCHITECT CODE'}
@@ -156,13 +171,28 @@ export const PaymentGate: React.FC<PaymentGateProps> = ({ onSuccess, userEmail, 
              <div className="absolute top-[-5%] right-[-5%] w-32 h-32 bg-slate-50 rounded-full blur-3xl" />
              <h3 className="text-2xl font-black uppercase italic text-slate-900 mb-1">Tactical</h3>
              <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-10">Monthly Clearance</p>
-             <div className="flex items-baseline gap-3 my-12">
-                <span className="text-6xl font-black text-slate-900 italic tracking-tighter">
-                  ₹{discountApplied > 0 ? (49 * (1 - discountApplied/100)).toFixed(0) : '49'}
+             
+             {/* Price Box - Clickable if amount is 0 */}
+             <div 
+               onClick={() => calculatePrice(49, 'tactical') === '0' && handleCompleteAccess(90, true)}
+               className={`flex items-baseline gap-3 my-12 p-4 rounded-3xl transition-all ${calculatePrice(49, 'tactical') === '0' ? 'cursor-pointer bg-emerald-50 hover:bg-emerald-100 border-2 border-dashed border-emerald-200' : ''}`}
+             >
+                <span className={`text-6xl font-black italic tracking-tighter ${calculatePrice(49, 'tactical') === '0' ? 'text-emerald-600' : 'text-slate-900'}`}>
+                  ₹{calculatePrice(49, 'tactical')}
                 </span>
                 <span className="text-lg text-slate-300 font-black uppercase tracking-widest">/mo</span>
+                {calculatePrice(49, 'tactical') === '0' && (
+                  <div className="ml-2 bg-emerald-500 text-white text-[8px] font-black uppercase px-2 py-1 rounded animate-pulse">Unlocked</div>
+                )}
              </div>
-             <button onClick={() => handleUPIPayment(49, "Tactical")} className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl active:scale-95">Select Plan</button>
+
+             <button 
+               onClick={() => handleUPIPayment(49, "Tactical")} 
+               className={`w-full py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest transition-all shadow-xl active:scale-95 ${calculatePrice(49, 'tactical') === '0' ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-slate-900 hover:bg-indigo-600 text-white'}`}
+             >
+               {calculatePrice(49, 'tactical') === '0' ? 'Activate Instant Access' : 'Select Plan'}
+             </button>
+             
              <div className="mt-8 space-y-3">
                 {['Daily Rituals', 'Monthly Targets', 'Cloud Synthesis'].map((f, i) => (
                   <div key={i} className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase italic">
@@ -177,13 +207,28 @@ export const PaymentGate: React.FC<PaymentGateProps> = ({ onSuccess, userEmail, 
              <div className="absolute top-[-10%] right-[-10%] w-48 h-48 bg-[#76C7C0]/10 rounded-full blur-[80px]" />
              <h3 className="text-2xl font-black uppercase italic text-[#76C7C0] mb-1">Strategic</h3>
              <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-10">Annual Authority</p>
-             <div className="flex items-baseline gap-3 my-12">
-                <span className="text-6xl font-black text-white italic tracking-tighter">
-                  ₹{discountApplied > 0 ? (299 * (1 - discountApplied/100)).toFixed(0) : '299'}
+             
+             {/* Price Box - Clickable if amount is 0 */}
+             <div 
+                onClick={() => calculatePrice(299, 'strategic') === '0' && handleCompleteAccess(365, true)}
+                className={`flex items-baseline gap-3 my-12 p-4 rounded-3xl transition-all ${calculatePrice(299, 'strategic') === '0' ? 'cursor-pointer bg-white/5 hover:bg-white/10 border-2 border-dashed border-white/10' : ''}`}
+             >
+                <span className={`text-6xl font-black italic tracking-tighter ${calculatePrice(299, 'strategic') === '0' ? 'text-[#76C7C0]' : 'text-white'}`}>
+                  ₹{calculatePrice(299, 'strategic')}
                 </span>
                 <span className="text-lg text-slate-500 font-black uppercase tracking-widest">/yr</span>
+                {calculatePrice(299, 'strategic') === '0' && (
+                  <div className="ml-2 bg-[#76C7C0] text-slate-900 text-[8px] font-black uppercase px-2 py-1 rounded animate-pulse">Unlocked</div>
+                )}
              </div>
-             <button onClick={() => handleUPIPayment(299, "Strategic")} className="w-full py-5 bg-[#76C7C0] text-slate-900 rounded-[2rem] font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-2xl shadow-indigo-500/10 active:scale-95">Select Plan</button>
+
+             <button 
+               onClick={() => handleUPIPayment(299, "Strategic")} 
+               className={`w-full py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest transition-all shadow-2xl active:scale-95 ${calculatePrice(299, 'strategic') === '0' ? 'bg-[#76C7C0] text-slate-900 hover:bg-white' : 'bg-[#76C7C0] text-slate-900 hover:bg-white'}`}
+             >
+               {calculatePrice(299, 'strategic') === '0' ? 'Activate Instant Access' : 'Select Plan'}
+             </button>
+
              <div className="mt-8 space-y-3">
                 {['Unlimited Rituals', 'Sprint Board', 'Legacy Visions', 'Architect Ranking'].map((f, i) => (
                   <div key={i} className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase italic">

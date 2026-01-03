@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { db, auth } from '../services/firebase.ts';
 import { Coupon } from '../types.ts';
@@ -12,6 +13,7 @@ interface AdminUser {
   validUntil?: string | null;
   approvedAt?: string | null;
   isPaid?: boolean;
+  autoApproved?: boolean; // Track if the user was approved via a 100% coupon
 }
 
 export const AdminPage: React.FC = () => {
@@ -30,6 +32,7 @@ export const AdminPage: React.FC = () => {
   // Coupon Form State
   const [newCode, setNewCode] = useState('');
   const [newDiscount, setNewDiscount] = useState('50');
+  const [newPlanType, setNewPlanType] = useState<'tactical' | 'strategic' | 'all'>('all');
   const [customDays, setCustomDays] = useState('30');
 
   useEffect(() => {
@@ -64,10 +67,12 @@ export const AdminPage: React.FC = () => {
       await db.collection('coupons').add({
         code: newCode.toUpperCase().trim(),
         discount: parseInt(newDiscount),
+        planType: newPlanType,
         active: true,
         createdAt: new Date().toISOString()
       });
       setNewCode('');
+      setNewPlanType('all');
       setShowCouponModal(false);
     } catch (err: any) {
       alert("Forge Failed: " + err.message);
@@ -92,7 +97,7 @@ export const AdminPage: React.FC = () => {
           validUntil = expiry.toISOString();
         }
       }
-      await db.collection('users').doc(userId).update({ status, validUntil, approvedAt });
+      await db.collection('users').doc(userId).update({ status, validUntil, approvedAt, autoApproved: false }); // Manual update resets auto-approve status
       setShowApprovalModal(null);
     } catch (err: any) {
       alert(`Update failed: ${err.message}`);
@@ -157,12 +162,22 @@ export const AdminPage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {filteredUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <tr 
+                      key={user.id} 
+                      className={`hover:bg-slate-50/50 transition-colors group ${user.autoApproved ? 'bg-amber-50/40' : ''}`}
+                    >
                       <td className="px-8 py-6">
                         <div className="flex items-center gap-4 cursor-pointer" onClick={() => setSelectedUser(user)}>
-                          <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black shadow-lg group-hover:scale-110 transition-transform uppercase">{user.fullName?.charAt(0)}</div>
+                          <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center text-white font-black shadow-lg group-hover:scale-110 transition-transform uppercase ${user.autoApproved ? 'bg-[#76C7C0]' : 'bg-slate-900'}`}>
+                            {user.fullName?.charAt(0)}
+                          </div>
                           <div>
-                            <div className="font-black text-slate-900 text-sm uppercase tracking-tight group-hover:text-indigo-600 transition-colors truncate max-w-[150px]">{user.fullName}</div>
+                            <div className="flex items-center gap-2">
+                              <div className="font-black text-slate-900 text-sm uppercase tracking-tight group-hover:text-indigo-600 transition-colors truncate max-w-[150px]">{user.fullName}</div>
+                              {user.autoApproved && (
+                                <span className="bg-amber-400 text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest shadow-sm">Promo</span>
+                              )}
+                            </div>
                             <div className="text-[10px] font-bold text-slate-400 truncate max-w-[150px]">{user.email}</div>
                           </div>
                         </div>
@@ -194,7 +209,10 @@ export const AdminPage: React.FC = () => {
                    <div className="flex justify-between items-start mb-6">
                       <div>
                         <h3 className="text-3xl font-black italic tracking-tighter text-slate-900 group-hover:text-indigo-600 transition-colors uppercase">{coupon.code}</h3>
-                        <p className="text-[10px] font-black text-[#76C7C0] uppercase tracking-widest">{coupon.discount}% Performance Offset</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-[10px] font-black text-[#76C7C0] uppercase tracking-widest">{coupon.discount}% Performance Offset</p>
+                          <span className="text-[8px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase">{coupon.planType || 'all'}</span>
+                        </div>
                       </div>
                       <button onClick={() => deleteCoupon(coupon.id)} className="text-slate-300 hover:text-rose-500 transition-colors p-2 text-xl font-light">×</button>
                    </div>
@@ -227,15 +245,25 @@ export const AdminPage: React.FC = () => {
                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1 italic">Secret Alpha-Numeric Code</label>
                    <input value={newCode} onChange={e => setNewCode(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 md:py-5 font-black text-xl outline-none focus:border-indigo-500 transition-all uppercase placeholder:text-slate-200" placeholder="ELITE2026" />
                 </div>
-                <div>
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1 italic">Performance Discount Value</label>
-                   <select value={newDiscount} onChange={e => setNewDiscount(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 md:py-5 font-black outline-none appearance-none focus:border-indigo-500 transition-all text-sm">
-                      <option value="10">10% Performance Boost</option>
-                      <option value="25">25% Performance Boost</option>
-                      <option value="50">50% Performance Boost</option>
-                      <option value="75">75% Performance Boost</option>
-                      <option value="100">100% (Instant Clearance)</option>
-                   </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1 italic">Discount Value</label>
+                    <select value={newDiscount} onChange={e => setNewDiscount(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-4 md:py-5 font-black outline-none appearance-none focus:border-indigo-500 transition-all text-sm">
+                        <option value="10">10%</option>
+                        <option value="25">25%</option>
+                        <option value="50">50%</option>
+                        <option value="75">75%</option>
+                        <option value="100">100%</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1 italic">Target Plan</label>
+                    <select value={newPlanType} onChange={e => setNewPlanType(e.target.value as any)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-4 md:py-5 font-black outline-none appearance-none focus:border-indigo-500 transition-all text-sm">
+                        <option value="all">All Plans</option>
+                        <option value="tactical">Tactical Only</option>
+                        <option value="strategic">Strategic Only</option>
+                    </select>
+                  </div>
                 </div>
                 <button onClick={createCoupon} className="w-full py-5 bg-slate-900 text-white rounded-3xl font-black uppercase tracking-[0.4em] text-xs shadow-2xl hover:bg-[#76C7C0] transition-all">Deploy Code</button>
              </div>
@@ -249,11 +277,16 @@ export const AdminPage: React.FC = () => {
           <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-xl animate-in fade-in" onClick={() => setSelectedUser(null)} />
           <div className="relative w-full max-w-xl bg-white rounded-[3rem] md:rounded-[4rem] p-8 md:p-12 shadow-2xl animate-in zoom-in max-h-[90vh] overflow-y-auto">
              <div className="flex flex-col md:flex-row items-center gap-6 mb-8 md:mb-12 text-center md:text-left">
-                <div className="w-20 h-20 md:w-24 md:h-24 bg-slate-900 rounded-3xl flex items-center justify-center text-white text-3xl md:text-4xl font-black shadow-2xl uppercase">{selectedUser.fullName?.charAt(0)}</div>
+                <div className={`w-20 h-20 md:w-24 md:h-24 rounded-3xl flex items-center justify-center text-white text-3xl md:text-4xl font-black shadow-2xl uppercase ${selectedUser.autoApproved ? 'bg-[#76C7C0]' : 'bg-slate-900'}`}>{selectedUser.fullName?.charAt(0)}</div>
                 <div>
                    <h2 className="text-3xl md:text-4xl font-black italic uppercase tracking-tighter leading-none">{selectedUser.fullName}</h2>
                    <p className="text-slate-400 font-bold uppercase text-[10px] md:text-xs tracking-widest mt-2">{selectedUser.email}</p>
-                   <span className={`inline-block mt-4 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${selectedUser.isPaid ? 'bg-emerald-500 text-white shadow-emerald-200 shadow-lg' : 'bg-slate-100 text-slate-400'}`}>{selectedUser.isPaid ? 'Premium Verified' : 'Unpaid Protocol'}</span>
+                   <div className="flex items-center gap-3 mt-4">
+                     <span className={`inline-block px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${selectedUser.isPaid ? 'bg-emerald-500 text-white shadow-emerald-200 shadow-lg' : 'bg-slate-100 text-slate-400'}`}>{selectedUser.isPaid ? 'Premium Verified' : 'Unpaid Protocol'}</span>
+                     {selectedUser.autoApproved && (
+                       <span className="bg-amber-400 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg shadow-amber-100">Promotion Access</span>
+                     )}
+                   </div>
                 </div>
              </div>
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
