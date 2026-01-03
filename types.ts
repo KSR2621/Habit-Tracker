@@ -1,4 +1,5 @@
-export type Tab = 'Setup' | 'Annual Goals' | string;
+
+export type Tab = 'Setup' | 'Annual Goals' | 'Admin Control' | string;
 
 export type HabitMode = 'All' | 'Focus' | 'Low Energy' | 'Growth';
 
@@ -16,8 +17,16 @@ export interface Habit {
   category: 'Mind' | 'Body' | 'Spirit' | 'Work';
   history: Record<string, HabitHistory>;
   activeMonths: string[]; 
-  goal: number;       // Target number of completions (e.g., 31)
-  frequency: string;  // Cadence description (e.g., "7/7")
+  goal: number;
+  frequency: string;
+}
+
+export interface Coupon {
+  id: string;
+  code: string;
+  discount: number; // 0-100
+  active: boolean;
+  createdAt: string;
 }
 
 export interface HabitTemplate {
@@ -55,7 +64,7 @@ export interface MonthlyGoal {
 
 export interface WeeklyGoal {
   month: string;
-  weekIndex: number; // 0 to 4
+  weekIndex: number;
   goals: { text: string; completed: boolean }[];
 }
 
