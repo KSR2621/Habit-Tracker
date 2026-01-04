@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis,
@@ -19,7 +18,7 @@ interface AnnualGoalsViewProps {
   onUpdateWeeklyGoals: (month: string, weekIndex: number, goals: { text: string; completed: boolean }[]) => void;
 }
 
-// --- PREMIUM PALETTE ---
+// --- PREMIUM PALETTE (Unchanged) ---
 const PALETTE = {
   accents: [
     { name: 'Indigo', bg: 'bg-indigo-600',  hex: '#4F46E5', text: 'text-indigo-600', border: 'border-indigo-100', softBg: 'bg-indigo-50/50' },
@@ -34,8 +33,9 @@ const PALETTE = {
 const WEEK_LABELS = ['WK 01', 'WK 02', 'WK 03', 'WK 04', 'EXTRA'];
 
 // --- UI COMPONENTS ---
+// Smaller, clearer stat label
 const StatLabel = ({ children }: { children: React.ReactNode }) => (
-  <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 mb-1 block italic">{children}</span>
+  <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1 block">{children}</span>
 );
 
 export const AnnualGoalsView: React.FC<AnnualGoalsViewProps> = ({ 
@@ -49,13 +49,13 @@ export const AnnualGoalsView: React.FC<AnnualGoalsViewProps> = ({
 }) => {
   const [selectedMonthForWeekly, setSelectedMonthForWeekly] = useState(MONTHS_LIST[0]);
 
-  // --- DATA CALCULATIONS ---
+  // --- DATA CALCULATIONS (Unchanged) ---
   const radarData = useMemo(() => {
     return categories.map((cat, index) => {
       const completed = cat.goals.filter(g => g.completed).length;
       const progress = cat.goals.length > 0 ? (completed / cat.goals.length) * 100 : 0;
       return { 
-        subject: cat.name || `Zone ${index + 1}`, 
+        subject: cat.name ? (cat.name.length > 10 ? cat.name.substring(0, 8) + '..' : cat.name) : `Zone ${index + 1}`, 
         A: progress, 
         fullMark: 100 
       };
@@ -93,66 +93,68 @@ export const AnnualGoalsView: React.FC<AnnualGoalsViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] text-slate-900 font-sans selection:bg-indigo-500 selection:text-white pb-32">
+    <div className="min-h-screen bg-[#FDFDFD] text-slate-900 font-sans selection:bg-indigo-500 selection:text-white pb-20">
       
       {/* 1. HERO HEADER */}
-      <div className="max-w-[1500px] mx-auto p-6 md:p-12">
-        <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10 mb-16">
+      <div className="max-w-[1400px] mx-auto p-4 md:p-8">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-10 md:mb-12">
           <div className="animate-in fade-in slide-in-from-left duration-700">
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-2 mb-2">
                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-               <span className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Strategic Vector 2.0</span>
+               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Strategic Vector 2.0</span>
             </div>
-            <h1 className="text-7xl md:text-[10rem] font-black tracking-tighter text-slate-900 leading-[0.8] italic">
-              {year}<span className="text-slate-100 not-italic">.</span>MASTER
+            {/* Reduced Text Size for clarity */}
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-slate-900 leading-[0.9] italic">
+              {year}<span className="text-slate-200 not-italic">.</span>MASTER
             </h1>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-6 w-full lg:w-auto animate-in fade-in slide-in-from-right duration-700">
-             <div className="bg-white border border-slate-100 p-8 rounded-[3rem] shadow-xl shadow-slate-200/50 flex flex-col items-end min-w-[200px]">
+          <div className="flex flex-row items-center gap-4 w-full md:w-auto animate-in fade-in slide-in-from-right duration-700">
+             <div className="bg-white border border-slate-100 px-6 py-4 rounded-3xl shadow-lg shadow-slate-100 flex flex-col items-end min-w-[140px]">
                 <StatLabel>Total Fidelity</StatLabel>
-                <div className="text-6xl font-black text-slate-900 flex items-baseline gap-1 italic">
-                   {totalProgress}<span className="text-xl text-slate-300 not-italic">%</span>
+                <div className="text-3xl md:text-4xl font-black text-slate-900 flex items-baseline gap-1 italic">
+                   {totalProgress}<span className="text-sm text-slate-300 not-italic">%</span>
                 </div>
-                <div className="w-full h-1 bg-slate-50 rounded-full mt-4 overflow-hidden">
+                <div className="w-full h-1 bg-slate-50 rounded-full mt-2 overflow-hidden">
                    <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${totalProgress}%` }} />
                 </div>
              </div>
              
              <button 
                 onClick={onAddCategory}
-                className="bg-slate-900 text-white hover:bg-indigo-600 transition-all px-10 py-6 rounded-3xl shadow-2xl shadow-indigo-100 active:scale-95 flex items-center justify-center gap-4 group"
+                className="bg-slate-900 text-white hover:bg-indigo-600 transition-all px-6 py-4 h-full rounded-3xl shadow-lg active:scale-95 flex items-center justify-center gap-2 group"
              >
-                <span className="text-xs font-black uppercase tracking-widest">Add Zone</span>
-                <svg className="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                <span className="text-[10px] md:text-xs font-black uppercase tracking-widest hidden md:inline">Add Zone</span>
+                <span className="text-[10px] md:text-xs font-black uppercase tracking-widest md:hidden">Add</span>
+                <svg className="w-4 h-4 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
              </button>
           </div>
         </header>
 
         {/* 2. ANALYTICS BENTO GRID */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 md:gap-6 mb-12">
            
            {/* Radar: Macro Balance */}
-           <div className="lg:col-span-4 bg-white rounded-[3.5rem] p-10 border border-slate-100 shadow-sm flex flex-col justify-between overflow-hidden relative group">
-              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-20 transition-opacity">
-                 <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 12L12 22L22 12L12 2Z"/></svg>
+           <div className="lg:col-span-4 bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm flex flex-col justify-between overflow-hidden relative group h-[280px]">
+              <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                 <svg className="w-20 h-20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 12L12 22L22 12L12 2Z"/></svg>
               </div>
               <div className="relative z-10">
                 <StatLabel>Macro Balance</StatLabel>
-                <h2 className="text-3xl font-black text-slate-900 italic tracking-tighter">Fidelity Radar</h2>
+                <h2 className="text-lg md:text-xl font-black text-slate-900 italic tracking-tighter">Fidelity Radar</h2>
               </div>
-              <div className="h-[280px] w-full mt-4 flex items-center justify-center">
+              <div className="flex-1 w-full mt-2 flex items-center justify-center -ml-2">
                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
+                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
                        <PolarGrid stroke="#F1F5F9" />
                        <PolarAngleAxis 
                           dataKey="subject" 
-                          tick={{ fill: '#64748B', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em' }} 
+                          tick={{ fill: '#94A3B8', fontSize: 9, fontWeight: 700, letterSpacing: '0.05em' }} 
                        />
-                       <Radar name="Zone Health" dataKey="A" stroke="#6366F1" strokeWidth={3} fill="#6366F1" fillOpacity={0.15} animationDuration={1500} />
+                       <Radar name="Zone Health" dataKey="A" stroke="#6366F1" strokeWidth={2} fill="#6366F1" fillOpacity={0.15} animationDuration={1500} />
                        <Tooltip 
-                          contentStyle={{ background: '#111827', border: 'none', borderRadius: '1.5rem', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}
-                          itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}
+                           contentStyle={{ background: '#111827', border: 'none', borderRadius: '0.75rem', padding: '8px' }}
+                           itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: '700' }}
                        />
                     </RadarChart>
                  </ResponsiveContainer>
@@ -160,19 +162,19 @@ export const AnnualGoalsView: React.FC<AnnualGoalsViewProps> = ({
            </div>
 
            {/* Distribution Pie */}
-           <div className="lg:col-span-5 bg-white rounded-[3.5rem] p-10 border border-slate-100 shadow-sm flex flex-col items-center justify-center relative">
-              <div className="absolute top-10 left-10">
+           <div className="lg:col-span-5 bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm flex flex-col relative h-[280px]">
+              <div className="absolute top-6 left-6 z-10">
                  <StatLabel>Architecture</StatLabel>
-                 <h2 className="text-3xl font-black text-slate-900 italic tracking-tighter">Goal Mix</h2>
+                 <h2 className="text-lg md:text-xl font-black text-slate-900 italic tracking-tighter">Goal Mix</h2>
               </div>
               
-              <div className="relative w-full h-[320px] flex items-center justify-center mt-10">
+              <div className="relative w-full h-full flex items-center justify-center">
                  <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                        <Pie
                           data={pieChartData}
-                          cx="50%" cy="50%" innerRadius={85} outerRadius={110}
-                          paddingAngle={8} cornerRadius={12} dataKey="value" stroke="none"
+                          cx="50%" cy="50%" innerRadius={60} outerRadius={80}
+                          paddingAngle={6} cornerRadius={8} dataKey="value" stroke="none"
                           animationDuration={2000}
                        >
                           {pieChartData.map((entry, index) => (
@@ -181,29 +183,29 @@ export const AnnualGoalsView: React.FC<AnnualGoalsViewProps> = ({
                        </Pie>
                     </PieChart>
                  </ResponsiveContainer>
-                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className="text-5xl font-black text-slate-900 italic leading-none">{totalGoalsCount}</span>
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mt-2">Total Nodes</span>
+                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pt-4">
+                    <span className="text-3xl font-black text-slate-900 italic leading-none">{totalGoalsCount}</span>
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mt-1">Nodes</span>
                  </div>
               </div>
            </div>
 
            {/* Metrics Pillar */}
-           <div className="lg:col-span-3 flex flex-col gap-6">
-              <div className="flex-1 bg-slate-900 rounded-[3rem] p-8 flex flex-col justify-center items-center text-center group transition-all hover:bg-slate-800">
+           <div className="lg:col-span-3 flex flex-col sm:flex-row lg:flex-col gap-4 h-auto lg:h-[280px]">
+              <div className="flex-1 bg-slate-900 rounded-[2rem] p-6 flex flex-col justify-center items-center text-center group transition-all hover:bg-slate-800">
                  <StatLabel>Status</StatLabel>
-                 <div className="text-4xl font-black text-white italic tracking-tighter mb-2 uppercase group-hover:scale-110 transition-transform">
-                   {totalProgress > 75 ? 'Optimal' : totalProgress > 40 ? 'Active' : 'Deploying'}
+                 <div className="text-2xl md:text-3xl font-black text-white italic tracking-tighter mb-1 uppercase group-hover:scale-105 transition-transform">
+                   {totalProgress > 75 ? 'Optimal' : totalProgress > 40 ? 'Active' : 'Init'}
                  </div>
-                 <div className="px-3 py-1 bg-white/10 rounded-lg text-[9px] font-black text-[#76C7C0] uppercase tracking-widest italic">Operational Tier</div>
+                 <div className="px-2 py-0.5 bg-white/10 rounded text-[9px] font-bold text-[#76C7C0] uppercase tracking-wider">Tier 1</div>
               </div>
               
-              <div className="flex-1 bg-[#F1F5F9] rounded-[3rem] p-8 flex flex-col justify-center items-center text-center">
+              <div className="flex-1 bg-[#F1F5F9] rounded-[2rem] p-6 flex flex-col justify-center items-center text-center">
                  <StatLabel>Active Sprint</StatLabel>
-                 <h3 className="text-4xl font-black text-slate-900 italic tracking-tighter uppercase">{selectedMonthForWeekly.slice(0, 3)}</h3>
-                 <div className="mt-3 flex gap-1">
+                 <h3 className="text-2xl md:text-3xl font-black text-slate-900 italic tracking-tighter uppercase">{selectedMonthForWeekly.slice(0, 3)}</h3>
+                 <div className="mt-2 flex gap-1">
                     {WEEK_LABELS.map((_, i) => (
-                       <div key={i} className={`w-1.5 h-1.5 rounded-full ${i === 0 ? 'bg-indigo-500 animate-pulse' : 'bg-slate-300'}`} />
+                       <div key={i} className={`w-1 h-1 rounded-full ${i === 0 ? 'bg-indigo-500 animate-pulse' : 'bg-slate-300'}`} />
                     ))}
                  </div>
               </div>
@@ -211,46 +213,46 @@ export const AnnualGoalsView: React.FC<AnnualGoalsViewProps> = ({
         </div>
 
         {/* 3. CATEGORY NODES GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 mb-24">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-16">
            {categories.map((cat, catIdx) => {
               const theme = PALETTE.accents[catIdx % PALETTE.accents.length];
               const completed = cat.goals.filter(g => g.completed).length;
               const progress = cat.goals.length > 0 ? Math.round((completed / cat.goals.length) * 100) : 0;
 
               return (
-                <div key={catIdx} className="group bg-white rounded-[3.5rem] p-10 shadow-sm border border-slate-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col">
-                   <div className="flex justify-between items-start mb-8">
-                      <div className="flex-1 mr-4">
+                <div key={catIdx} className="group bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col">
+                   <div className="flex justify-between items-start mb-6">
+                      <div className="flex-1 mr-2">
                          <input 
                            value={cat.name}
                            onChange={(e) => onUpdateCategory(catIdx, { name: e.target.value })}
-                           className={`w-full text-2xl font-black text-slate-900 bg-transparent outline-none focus:${theme.text} transition-colors uppercase italic tracking-tighter`}
-                           placeholder="Strategy Zone"
+                           className={`w-full text-lg font-black text-slate-900 bg-transparent outline-none focus:${theme.text} transition-colors uppercase italic tracking-tight placeholder-slate-300`}
+                           placeholder="ZONE NAME"
                          />
-                         <div className="flex items-center gap-3 mt-2">
-                            <span className={`text-[10px] font-black uppercase ${theme.text} ${theme.softBg} px-2.5 py-1 rounded-lg tracking-widest`}>
-                               {progress}% Sync
+                         <div className="flex items-center gap-2 mt-1.5">
+                            <span className={`text-[9px] font-black uppercase ${theme.text} ${theme.softBg} px-2 py-0.5 rounded tracking-wider`}>
+                               {progress}%
                             </span>
-                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest italic">{completed}/{cat.goals.length} Tasks</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{completed}/{cat.goals.length}</span>
                          </div>
                       </div>
-                      <button onClick={() => onDeleteCategory(catIdx)} className="w-10 h-10 rounded-full flex items-center justify-center text-slate-200 hover:bg-rose-50 hover:text-rose-500 transition-all text-xl font-light">×</button>
+                      <button onClick={() => onDeleteCategory(catIdx)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-300 hover:bg-rose-50 hover:text-rose-500 transition-all text-lg font-light">×</button>
                    </div>
 
-                   <div className="flex-1 space-y-4">
+                   <div className="flex-1 space-y-3">
                       {cat.goals.map((goal, goalIdx) => (
-                        <div key={goalIdx} className="flex items-start gap-3 group/item">
+                        <div key={goalIdx} className="flex items-start gap-2 group/item">
                            <button 
                              onClick={() => {
                                const goals = [...cat.goals];
                                goals[goalIdx].completed = !goals[goalIdx].completed;
                                onUpdateCategory(catIdx, { goals });
                              }}
-                             className={`mt-1 w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all duration-300 flex-shrink-0
-                               ${goal.completed ? `${theme.bg} border-transparent shadow-lg shadow-${theme.hex}/20` : 'border-slate-100 bg-slate-50 hover:border-slate-300'}
+                             className={`mt-0.5 w-4 h-4 rounded-[4px] border flex items-center justify-center transition-all duration-300 flex-shrink-0
+                               ${goal.completed ? `${theme.bg} border-transparent` : 'border-slate-200 bg-slate-50 hover:border-slate-400'}
                              `}
                            >
-                             {goal.completed && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4"><path d="M5 13l4 4L19 7" /></svg>}
+                             {goal.completed && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4"><path d="M5 13l4 4L19 7" /></svg>}
                            </button>
                            <input 
                              value={goal.text}
@@ -259,8 +261,8 @@ export const AnnualGoalsView: React.FC<AnnualGoalsViewProps> = ({
                                goals[goalIdx].text = e.target.value;
                                onUpdateCategory(catIdx, { goals });
                              }}
-                             className={`flex-1 text-[13px] font-bold bg-transparent outline-none py-0.5 border-b border-transparent focus:border-slate-100 transition-all
-                               ${goal.completed ? 'text-slate-300 line-through' : 'text-slate-600'}
+                             className={`flex-1 text-[13px] font-medium bg-transparent outline-none py-0 leading-tight border-b border-transparent focus:border-slate-200 transition-all
+                               ${goal.completed ? 'text-slate-300 line-through decoration-slate-300' : 'text-slate-600'}
                              `}
                            />
                            <button 
@@ -268,9 +270,9 @@ export const AnnualGoalsView: React.FC<AnnualGoalsViewProps> = ({
                                const goals = cat.goals.filter((_, i) => i !== goalIdx);
                                onUpdateCategory(catIdx, { goals });
                              }}
-                             className="opacity-0 group-hover/item:opacity-100 p-1 text-slate-200 hover:text-rose-500 transition-all"
+                             className="opacity-0 group-hover/item:opacity-100 text-slate-300 hover:text-rose-500 transition-all"
                            >
-                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeWidth="2.5"/></svg>
+                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeWidth="2.5"/></svg>
                            </button>
                         </div>
                       ))}
@@ -278,33 +280,34 @@ export const AnnualGoalsView: React.FC<AnnualGoalsViewProps> = ({
 
                    <button 
                      onClick={() => onUpdateCategory(catIdx, { goals: [...cat.goals, { text: 'New Target', completed: false }] })}
-                     className="mt-10 py-4 w-full bg-slate-50 hover:bg-slate-100 rounded-2xl flex items-center justify-center gap-3 transition-all group"
+                     className="mt-6 py-2.5 w-full bg-slate-50 hover:bg-slate-100 rounded-xl flex items-center justify-center gap-2 transition-all group"
                    >
-                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 group-hover:text-slate-900">+ Add Task</span>
+                     <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-slate-700">+ Add Task</span>
                    </button>
                 </div>
               );
            })}
         </div>
 
-        {/* 4. TACTICAL SPRINT BOARD */}
-        <div className="bg-[#0F172A] rounded-[4rem] p-10 md:p-20 text-white relative overflow-hidden shadow-2xl">
+        {/* 4. TACTICAL SPRINT BOARD - Compact Dark Mode */}
+        <div className="bg-[#0F172A] rounded-[2.5rem] p-6 md:p-10 text-white relative overflow-hidden shadow-2xl">
            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-indigo-500/10 via-transparent to-emerald-500/10 pointer-events-none" />
            
-           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-12 mb-16 relative z-10">
+           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-8 mb-10 relative z-10">
               <div>
                  <StatLabel>Deployment</StatLabel>
-                 <h2 className="text-5xl md:text-6xl font-black italic tracking-tighter">Tactical Sprint</h2>
-                 <p className="text-slate-400 font-medium italic mt-2">Break annual vision into weekly high-fidelity execution blocks.</p>
+                 <h2 className="text-3xl md:text-5xl font-black italic tracking-tighter">Tactical Sprint</h2>
+                 <p className="text-slate-400 text-sm font-medium mt-2 max-w-lg leading-relaxed">Weekly execution blocks. High fidelity.</p>
               </div>
 
-              <div className="flex items-center gap-2 bg-white/5 p-2 rounded-[2rem] border border-white/5 backdrop-blur-xl overflow-x-auto no-scrollbar max-w-full">
+              {/* Scrollable Month Selector */}
+              <div className="flex items-center gap-1.5 bg-white/5 p-1.5 rounded-2xl border border-white/5 backdrop-blur-xl overflow-x-auto no-scrollbar w-full xl:w-auto mask-linear-fade">
                  {MONTHS_LIST.map(m => (
                     <button 
                        key={m} 
                        onClick={() => setSelectedMonthForWeekly(m)}
-                       className={`px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap
-                          ${selectedMonthForWeekly === m ? 'bg-indigo-500 text-white shadow-xl shadow-indigo-500/20' : 'text-slate-500 hover:text-white hover:bg-white/5'}
+                       className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex-shrink-0
+                          ${selectedMonthForWeekly === m ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-500 hover:text-white hover:bg-white/5'}
                        `}
                     >
                        {m}
@@ -313,12 +316,12 @@ export const AnnualGoalsView: React.FC<AnnualGoalsViewProps> = ({
               </div>
            </div>
 
-           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 relative z-10">
-              {/* Velocity Summary */}
-              <div className="lg:col-span-3 flex flex-col gap-8">
-                 <div className="bg-white/5 border border-white/5 p-8 rounded-[3rem] backdrop-blur-md">
-                    <StatLabel>Momentum Trend</StatLabel>
-                    <div className="h-40 w-full mt-6">
+           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10">
+              {/* Velocity Summary - Sidebar on Desktop */}
+              <div className="lg:col-span-3 flex flex-col sm:flex-row lg:flex-col gap-4">
+                 <div className="flex-1 bg-white/5 border border-white/5 p-6 rounded-[2rem] backdrop-blur-md">
+                    <StatLabel>Momentum</StatLabel>
+                    <div className="h-28 w-full mt-4">
                        <ResponsiveContainer width="100%" height="100%">
                           <AreaChart data={sprintTrendData}>
                              <defs>
@@ -327,80 +330,82 @@ export const AnnualGoalsView: React.FC<AnnualGoalsViewProps> = ({
                                    <stop offset="100%" stopColor="#6366F1" stopOpacity={0}/>
                                 </linearGradient>
                              </defs>
-                             <Area type="monotone" dataKey="value" stroke="#818CF8" strokeWidth={4} fill="url(#velocityFill)" animationDuration={2000} />
+                             <Area type="monotone" dataKey="value" stroke="#818CF8" strokeWidth={3} fill="url(#velocityFill)" animationDuration={2000} />
                           </AreaChart>
                        </ResponsiveContainer>
                     </div>
                  </div>
                  
-                 <div className="bg-indigo-500 p-8 rounded-[3rem] text-center shadow-xl shadow-indigo-500/20">
+                 <div className="bg-indigo-600 p-6 rounded-[2rem] text-center shadow-lg shadow-indigo-900/50 flex flex-col justify-center">
                     <StatLabel>Sprint Status</StatLabel>
-                    <div className="text-4xl font-black italic uppercase tracking-tighter mt-2">Active</div>
+                    <div className="text-2xl font-black italic uppercase tracking-tighter mt-1">Active</div>
                  </div>
               </div>
 
-              {/* Weekly Blocks */}
-              <div className="lg:col-span-9 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 items-stretch">
-                 {WEEK_LABELS.map((label, weekIdx) => {
-                    const goals = weeklyGoals.find(w => w.month === selectedMonthForWeekly && w.weekIndex === weekIdx)?.goals || [];
-                    const isExtra = label === 'EXTRA';
-                    
-                    return (
-                       <div key={weekIdx} className="bg-white/5 border border-white/5 rounded-[2.5rem] p-6 hover:bg-white/10 transition-colors flex flex-col min-h-[350px]">
-                          <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/5">
-                             <span className={`text-[11px] font-black tracking-[0.3em] uppercase italic ${isExtra ? 'text-emerald-400' : 'text-slate-500'}`}>{label}</span>
-                             <div className={`w-1.5 h-1.5 rounded-full ${goals.length > 0 && goals.every(g => g.completed) ? 'bg-emerald-400 shadow-[0_0_8px_#34D399]' : 'bg-white/10'}`} />
-                          </div>
+              {/* Weekly Blocks - Scrollable on mobile, Grid on desktop */}
+              <div className="lg:col-span-9 overflow-x-auto pb-4 lg:pb-0 -mx-6 px-6 lg:mx-0 lg:px-0">
+                 <div className="flex lg:grid lg:grid-cols-5 gap-3 min-w-[800px] lg:min-w-0">
+                   {WEEK_LABELS.map((label, weekIdx) => {
+                      const goals = weeklyGoals.find(w => w.month === selectedMonthForWeekly && w.weekIndex === weekIdx)?.goals || [];
+                      const isExtra = label === 'EXTRA';
+                      
+                      return (
+                         <div key={weekIdx} className="bg-white/5 border border-white/5 rounded-[1.5rem] p-4 hover:bg-white/10 transition-colors flex flex-col h-[280px] lg:h-auto w-full">
+                            <div className="flex justify-between items-center mb-4 pb-2 border-b border-white/5">
+                               <span className={`text-[9px] font-black tracking-[0.2em] uppercase italic ${isExtra ? 'text-emerald-400' : 'text-slate-500'}`}>{label}</span>
+                               <div className={`w-1 h-1 rounded-full ${goals.length > 0 && goals.every(g => g.completed) ? 'bg-emerald-400 shadow-[0_0_8px_#34D399]' : 'bg-white/10'}`} />
+                            </div>
 
-                          <div className="flex-1 space-y-4">
-                             {goals.map((goal, goalIdx) => (
-                                <div key={goalIdx} className="group/goal flex items-start gap-3 relative">
-                                   <button 
-                                      onClick={() => {
-                                        const newGoals = [...goals];
-                                        newGoals[goalIdx].completed = !newGoals[goalIdx].completed;
-                                        handleWeeklyUpdate(weekIdx, newGoals);
-                                      }}
-                                      className={`mt-1 w-4 h-4 rounded border transition-all flex-shrink-0 flex items-center justify-center
-                                         ${goal.completed ? 'bg-indigo-500 border-indigo-500 shadow-lg shadow-indigo-500/40' : 'border-white/10 bg-white/5 hover:border-white/30'}
-                                      `}
-                                   >
-                                      {goal.completed && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4"><path d="M5 13l4 4L19 7" /></svg>}
-                                   </button>
-                                   <textarea 
-                                      value={goal.text}
-                                      onChange={(e) => {
-                                        const newGoals = [...goals];
-                                        newGoals[goalIdx].text = e.target.value;
-                                        handleWeeklyUpdate(weekIdx, newGoals);
-                                      }}
-                                      className={`flex-1 bg-transparent outline-none text-[11px] font-bold leading-relaxed resize-none transition-all
-                                         ${goal.completed ? 'text-slate-500 line-through' : 'text-slate-300'}
-                                      `}
-                                      rows={2}
-                                   />
-                                   <button 
-                                      onClick={() => {
-                                        const newGoals = goals.filter((_, i) => i !== goalIdx);
-                                        handleWeeklyUpdate(weekIdx, newGoals);
-                                      }}
-                                      className="opacity-0 group-hover/goal:opacity-100 p-1 text-slate-600 hover:text-rose-500 transition-all"
-                                   >
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeWidth="2.5"/></svg>
-                                   </button>
-                                </div>
-                             ))}
-                          </div>
+                            <div className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar">
+                               {goals.map((goal, goalIdx) => (
+                                  <div key={goalIdx} className="group/goal flex items-start gap-2 relative">
+                                     <button 
+                                        onClick={() => {
+                                          const newGoals = [...goals];
+                                          newGoals[goalIdx].completed = !newGoals[goalIdx].completed;
+                                          handleWeeklyUpdate(weekIdx, newGoals);
+                                        }}
+                                        className={`mt-1 w-3 h-3 rounded-[3px] border transition-all flex-shrink-0 flex items-center justify-center
+                                           ${goal.completed ? 'bg-indigo-500 border-indigo-500' : 'border-white/20 bg-white/5 hover:border-white/40'}
+                                        `}
+                                     >
+                                        {goal.completed && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4"><path d="M5 13l4 4L19 7" /></svg>}
+                                     </button>
+                                     <textarea 
+                                        value={goal.text}
+                                        onChange={(e) => {
+                                          const newGoals = [...goals];
+                                          newGoals[goalIdx].text = e.target.value;
+                                          handleWeeklyUpdate(weekIdx, newGoals);
+                                        }}
+                                        className={`flex-1 bg-transparent outline-none text-[10px] md:text-[11px] font-medium leading-relaxed resize-none transition-all
+                                           ${goal.completed ? 'text-slate-500 line-through' : 'text-slate-300'}
+                                        `}
+                                        rows={2}
+                                     />
+                                     <button 
+                                        onClick={() => {
+                                          const newGoals = goals.filter((_, i) => i !== goalIdx);
+                                          handleWeeklyUpdate(weekIdx, newGoals);
+                                        }}
+                                        className="opacity-0 group-hover/goal:opacity-100 text-slate-600 hover:text-rose-500 transition-all"
+                                     >
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeWidth="2.5"/></svg>
+                                     </button>
+                                  </div>
+                               ))}
+                            </div>
 
-                          <button 
-                             onClick={() => addWeeklyItem(weekIdx)}
-                             className="mt-6 py-3 border border-dashed border-white/10 hover:border-white/40 rounded-2xl text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all"
-                          >
-                             + Add Entry
-                          </button>
-                       </div>
-                    );
-                 })}
+                            <button 
+                               onClick={() => addWeeklyItem(weekIdx)}
+                               className="mt-4 py-2 border border-dashed border-white/10 hover:border-white/30 rounded-lg text-[8px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all w-full"
+                            >
+                               + Entry
+                            </button>
+                         </div>
+                      );
+                   })}
+                 </div>
               </div>
            </div>
         </div>
