@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis,
@@ -33,7 +32,8 @@ const PALETTE = {
 
 const WEEK_LABELS = ['WK 01', 'WK 02', 'WK 03', 'WK 04', 'EXTRA'];
 
-const StatLabel = ({ children }: { children: React.ReactNode }) => (
+// Fixed StatLabel by making children optional to satisfy TypeScript's strict prop checking when used in JSX tags
+const StatLabel = ({ children }: { children?: React.ReactNode }) => (
   <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 mb-1 block italic">{children}</span>
 );
 

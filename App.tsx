@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { HabitMatrix } from './components/HabitMatrix.tsx';
 import { SetupView } from './components/SetupView.tsx';
@@ -7,7 +8,7 @@ import { AuthView } from './components/AuthView.tsx';
 import { PaymentGate } from './components/PaymentGate.tsx';
 import { AdminPage } from './pages/AdminPage.tsx';
 import { CreateHabitModal } from './components/CreateHabitModal.tsx';
-import { INITIAL_HABITS, MONTHLY_GOALS, ANNUAL_CATEGORIES, MONTHS_LIST } from './constants.tsx';
+import { INITIAL_HABITS, MONTHLY_GOALS, ANNUAL_CATEGORIES, INITIAL_WEEKLY_GOALS, MONTHS_LIST } from './constants.tsx';
 import { auth, db } from './services/firebase.ts';
 import { Habit, Tab, MonthlyGoal, AnnualCategory, PlannerConfig, WeeklyGoal } from './types.ts';
 
@@ -41,7 +42,7 @@ const App: React.FC = () => {
   // App State
   const [habits, setHabits] = useState<Habit[]>(INITIAL_HABITS);
   const [monthlyGoals, setMonthlyGoals] = useState<MonthlyGoal[]>(MONTHLY_GOALS);
-  const [weeklyGoals, setWeeklyGoals] = useState<WeeklyGoal[]>([]);
+  const [weeklyGoals, setWeeklyGoals] = useState<WeeklyGoal[]>(INITIAL_WEEKLY_GOALS);
   const [annualCategories, setAnnualCategories] = useState<AnnualCategory[]>(ANNUAL_CATEGORIES);
   const [config, setConfig] = useState<PlannerConfig>({
     year: '2026',
@@ -129,8 +130,6 @@ const App: React.FC = () => {
             }
           }
         } else {
-          // Document doesn't exist yet, but we are authenticated. 
-          // This can happen briefly during the registration process.
           setDataLoaded(true);
         }
         setDataLoaded(true);
@@ -138,7 +137,6 @@ const App: React.FC = () => {
         console.warn("Firestore Sync Error:", error);
         if (error.code === 'permission-denied') {
           setPermissionError(true);
-          // Retry after a short delay in case it's a transient token issue
           setTimeout(() => setupListener(), 3000);
         }
         setDataLoaded(true);
@@ -283,8 +281,16 @@ const App: React.FC = () => {
             onAddHabit={() => setIsAddModalOpen(true)}
             monthlyGoals={monthlyGoals}
             onUpdateMonthlyGoals={(month, goals) => {
-              const newGoals = monthlyGoals.map(m => m.month === month ? { ...m, goals } : m);
-              setMonthlyGoals(newGoals); syncToCloud({ monthlyGoals: newGoals });
+              // UPSERT Logic: Handle case where month container doesn't exist in monthlyGoals array yet
+              const monthExists = monthlyGoals.some(m => m.month === month);
+              let newGoals;
+              if (monthExists) {
+                newGoals = monthlyGoals.map(m => m.month === month ? { ...m, goals } : m);
+              } else {
+                newGoals = [...monthlyGoals, { month, goals }];
+              }
+              setMonthlyGoals(newGoals); 
+              syncToCloud({ monthlyGoals: newGoals });
             }}
             onAddMonthlyGoalContainer={(month) => {
               const newGoals = [...monthlyGoals, { month, goals: [] }];
