@@ -71,6 +71,8 @@ export interface WeeklyGoal {
 
 export interface AnnualCategory {
   name: string;
+  icon?: string;
+  color?: string;
   goals: { text: string; completed: boolean }[];
 }
 
