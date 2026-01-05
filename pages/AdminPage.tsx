@@ -151,10 +151,11 @@ export const AdminPage: React.FC = () => {
 
           <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left min-w-[900px]">
+              <table className="w-full text-left min-w-[1000px]">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Architect</th>
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Contact</th>
                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Enrollment</th>
                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Rem. Cycles</th>
                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Status</th>
@@ -184,6 +185,11 @@ export const AdminPage: React.FC = () => {
                               <div className="text-[10px] font-bold text-slate-400 truncate max-w-[150px]">{user.email}</div>
                             </div>
                           </div>
+                        </td>
+                        <td className="px-8 py-6">
+                           <div className="text-[11px] font-black text-slate-600 uppercase tracking-tight italic">
+                              {user.contact || 'N/A'}
+                           </div>
                         </td>
                         <td className="px-8 py-6 text-center text-sm font-black italic">{new Date(user.createdAt).toLocaleDateString()}</td>
                         <td className="px-8 py-6 text-center">
