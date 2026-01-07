@@ -1,5 +1,5 @@
 
-export type Tab = 'Setup' | 'Annual Goals' | 'Admin Control' | string;
+export type Tab = 'Setup' | 'Annual Goals' | 'Wealth Arch' | 'Admin Control' | string;
 
 export type HabitMode = 'All' | 'Focus' | 'Low Energy' | 'Growth';
 
@@ -28,6 +28,27 @@ export interface Coupon {
   planType: 'tactical' | 'strategic' | 'all';
   active: boolean;
   createdAt: string;
+}
+
+export interface Transaction {
+  id: string;
+  date: string;
+  desc: string;
+  amount: number;
+  type: 'income' | 'expense' | 'borrow' | 'lend';
+  category: string;
+  status?: 'pending' | 'settled';
+  settledAt?: string;
+}
+
+export interface BudgetLimit {
+  category: string;
+  limit: number;
+}
+
+export interface FinanceData {
+  transactions: Transaction[];
+  budgetLimits: BudgetLimit[];
 }
 
 export interface HabitTemplate {
@@ -79,7 +100,12 @@ export interface AnnualCategory {
 export interface PlannerConfig {
   year: string;
   showVisionBoard: boolean;
+  showFinance: boolean;
   activeMonths: string[];
   manifestationText?: string;
   tabOrder?: string[];
+  financeCategories?: {
+    income: string[];
+    expense: string[];
+  };
 }
