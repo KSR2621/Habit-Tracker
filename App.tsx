@@ -47,11 +47,11 @@ const App: React.FC = () => {
     showVisionBoard: true,
     showFinance: true,
     activeMonths: ['January'],
-    manifestationText: "Write your strategic vision here. Manifest the elite architecture of your future life.",
-    tabOrder: ['Setup', 'Annual Goals', 'Wealth Arch', 'January'],
+    manifestationText: "Write your plan here. Simple steps to reach your 2026 goals.",
+    tabOrder: ['Setup', 'Annual Goals', 'Finance Tracking', 'January'],
     financeCategories: {
-      income: ['Revenue', 'Yield', 'Bonus', 'Dividend'],
-      expense: ['Operations', 'Lifestyle', 'Growth', 'Taxes', 'Fixed']
+      income: ['Salary', 'Freelance', 'Gifts', 'Investments'],
+      expense: ['Rent', 'Food', 'Travel', 'Shopping', 'Bills']
     }
   });
 
@@ -67,7 +67,7 @@ const App: React.FC = () => {
   const allTabs = useMemo(() => {
     const available = ['Setup'];
     if (config.showVisionBoard) available.push('Annual Goals');
-    if (config.showFinance) available.push('Wealth Arch');
+    if (config.showFinance) available.push('Finance Tracking');
     (config.activeMonths || []).forEach(m => available.push(m));
     if (isAdmin) available.push('Admin Control');
     
@@ -203,10 +203,10 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     if (isAdmin) return <AdminPage />;
-    if (permissionError) return <div className="p-20 text-center font-black">SYNC PERMISSION DENIED.</div>;
+    if (permissionError) return <div className="p-20 text-center font-black">SYNC ERROR.</div>;
     if (userStatus === 'blocked') return <div className="p-20 text-center font-black">ACCESS BLOCKED.</div>;
     if (!isPaid) return <PaymentGate userId={user.uid} userEmail={user.email} onSuccess={() => setIsPaid(true)} />;
-    if (userStatus === 'pending') return <div className="p-20 text-center font-black">VERIFICATION PENDING.</div>;
+    if (userStatus === 'pending') return <div className="p-20 text-center font-black">WAITING FOR APPROVAL.</div>;
 
     switch (activeTab) {
       case 'Setup':
@@ -252,7 +252,7 @@ const App: React.FC = () => {
               setAnnualCategories(nc); syncToCloud({ annualCategories: nc });
             }}
             onAddCategory={() => {
-              const nc = [...annualCategories, { name: 'New Zone', goals: [] }];
+              const nc = [...annualCategories, { name: 'New Goal Area', goals: [] }];
               setAnnualCategories(nc); syncToCloud({ annualCategories: nc });
             }}
             onDeleteCategory={(idx) => {
@@ -266,7 +266,7 @@ const App: React.FC = () => {
             }}
           />
         );
-      case 'Wealth Arch':
+      case 'Finance Tracking':
         return (
           <FinanceView 
             transactions={financeTransactions}
@@ -323,7 +323,7 @@ const App: React.FC = () => {
             setHabits(nh); syncToCloud({ habits: nh });
           }} />;
         }
-        return <div className="p-20 text-center font-bold text-gray-400">Sector Missing.</div>;
+        return <div className="p-20 text-center font-bold text-gray-400">Page not found.</div>;
     }
   };
 
@@ -331,13 +331,13 @@ const App: React.FC = () => {
     if (tab === 'Admin Control') return 'bg-rose-600 text-white';
     if (tab === 'Setup') return 'bg-slate-800 text-white';
     if (tab === 'Annual Goals') return 'bg-[#76C7C0] text-white';
-    if (tab === 'Wealth Arch') return 'bg-indigo-600 text-white';
+    if (tab === 'Finance Tracking') return 'bg-indigo-600 text-white';
     const monthIdx = MONTHS_LIST.indexOf(tab);
     const colors = ['bg-blue-600', 'bg-purple-600', 'bg-amber-500', 'bg-emerald-600', 'bg-rose-600', 'bg-sky-500', 'bg-violet-600', 'bg-orange-600', 'bg-teal-600', 'bg-pink-600', 'bg-indigo-700', 'bg-cyan-600'];
     return monthIdx !== -1 ? colors[monthIdx % colors.length] : 'bg-slate-200 text-slate-600';
   };
 
-  if (authLoading) return <div className="min-h-screen bg-white flex items-center justify-center font-black animate-pulse">BOOTING...</div>;
+  if (authLoading) return <div className="min-h-screen bg-white flex items-center justify-center font-black animate-pulse">LOADING...</div>;
   if (!user) {
     if (!hasStarted) return <LandingPage onStart={() => { setHasStarted(true); localStorage.setItem('habitos_has_started', 'true'); }} />;
     return <AuthView onSuccess={() => {}} onBack={() => { setHasStarted(false); localStorage.removeItem('habitos_has_started'); }} />;
@@ -346,20 +346,19 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen pb-32">
       <div className="planner-container">
-        {/* REFINED COMPACT HEADER FOR MOBILE */}
         <header className="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-12 p-4 md:p-8 rounded-[1.5rem] md:rounded-[3rem] bg-white border border-slate-100 shadow-sm gap-4 md:gap-6">
           <div className="flex items-center gap-4 md:gap-6">
             <div className="w-10 h-10 md:w-16 md:h-16 bg-gray-900 rounded-xl md:rounded-[1.8rem] flex items-center justify-center text-white font-black text-xl md:text-3xl shadow-xl animate-float">N</div>
             <div>
               <h1 className="text-xl md:text-6xl font-black tracking-tighter text-gray-900 leading-none">{config.year} NextYou21</h1>
-              <p className="text-[7px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.5em] text-slate-400 mt-1 md:mt-2">Life Architecture Console</p>
+              <p className="text-[7px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.5em] text-slate-400 mt-1 md:mt-2">Daily Routine & Finance Console</p>
             </div>
           </div>
           <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-slate-50 pt-3 md:pt-0">
              <div className="text-left md:text-right">
                <div className={`inline-flex items-center gap-2 ${syncing ? 'bg-amber-400' : 'bg-[#76C7C0]'} text-white px-3 md:px-5 py-1 md:py-2 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest shadow-lg transition-all`}>
                  <div className={`w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-white ${syncing ? 'animate-ping' : ''}`} />
-                 {syncing ? 'Syncing' : 'Synced'}
+                 {syncing ? 'Saving' : 'Saved'}
                </div>
                <p className="hidden md:block text-[11px] font-black text-slate-400 mt-2 uppercase">{user.displayName || user.email}</p>
                <p className="md:hidden text-[9px] font-black text-slate-300 mt-1 uppercase truncate max-w-[120px]">{user.displayName || user.email.split('@')[0]}</p>
