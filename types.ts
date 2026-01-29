@@ -1,5 +1,5 @@
 
-export type Tab = 'Setup' | 'Annual Goals' | 'Wealth Arch' | 'Admin Control' | string;
+export type Tab = 'Setup' | 'Annual Goals' | 'Wealth Arch' | 'Admin Control' | 'Wallpaper' | string;
 
 export type HabitMode = 'All' | 'Focus' | 'Low Energy' | 'Growth';
 

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Habit, MonthlyGoal, PlannerConfig, MonthlyGoalItem } from '../types';
 import { MONTHS_LIST } from '../constants';
@@ -93,6 +94,20 @@ export const SetupView: React.FC<SetupViewProps> = ({
                 onChange={(e) => onUpdateConfig({ ...config, year: e.target.value })}
                 placeholder="2025"
              />
+          </div>
+        </div>
+
+        {/* Wallpaper Feature Card */}
+        <div className="bg-[#020617] rounded-xl p-5 border border-white/5 shadow-xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-500/10 rounded-full blur-2xl" />
+          <h3 className="text-[10px] font-black text-[#76C7C0] uppercase tracking-[0.4em] mb-4 border-b border-white/5 pb-2 italic">AOD Mode Active</h3>
+          <div className="flex flex-col gap-2">
+            <p className="text-[11px] text-slate-400 font-bold leading-relaxed italic">
+              Immersive 24/7 data telemetry. Press <span className="text-white font-black">F11</span> in the Wallpaper tab for true fullscreen.
+            </p>
+            <div className="mt-2 flex gap-1">
+              {[1,2,3,4].map(i => <div key={i} className="h-1 flex-1 bg-indigo-500/20 rounded-full" />)}
+            </div>
           </div>
         </div>
 

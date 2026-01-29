@@ -9,6 +9,7 @@ import { AuthView } from './components/AuthView.tsx';
 import { PaymentGate } from './components/PaymentGate.tsx';
 import { AdminPage } from './pages/AdminPage.tsx';
 import { CreateHabitModal } from './components/CreateHabitModal.tsx';
+import { WallpaperView } from './components/WallpaperView.tsx';
 import { INITIAL_HABITS, MONTHLY_GOALS, ANNUAL_CATEGORIES, INITIAL_WEEKLY_GOALS, MONTHS_LIST } from './constants.tsx';
 import { auth, db } from './services/firebase.ts';
 import { Habit, Tab, MonthlyGoal, AnnualCategory, PlannerConfig, WeeklyGoal, Transaction, BudgetLimit, EMI } from './types.ts';
@@ -48,7 +49,7 @@ const App: React.FC = () => {
     showFinance: true,
     activeMonths: ['January'],
     manifestationText: "Write your plan here. Simple steps to reach your 2026 goals.",
-    tabOrder: ['Setup', 'Annual Goals', 'Finance Tracking', 'January'],
+    tabOrder: ['Setup', 'Wallpaper', 'Annual Goals', 'Finance Tracking', 'January'],
     financeCategories: {
       income: ['Salary', 'Freelance', 'Gifts', 'Investments'],
       expense: ['Rent', 'Food', 'Travel', 'Shopping', 'Bills']
@@ -62,20 +63,32 @@ const App: React.FC = () => {
   const isDragging = useRef(false);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
-  const isDummyData = habits.length > 0 && habits[0].id === '1' && habits[0].name === INITIAL_HABITS[0].name;
 
   const allTabs = useMemo(() => {
-    const available = ['Setup'];
+    // 1. Core mandatory tabs - Putting Wallpaper early for visibility
+    const available = ['Setup', 'Wallpaper'];
+    
+    // 2. Conditional feature tabs
     if (config.showVisionBoard) available.push('Annual Goals');
     if (config.showFinance) available.push('Finance Tracking');
-    (config.activeMonths || []).forEach(m => available.push(m));
+    
+    // 3. Dynamic month tabs
+    (config.activeMonths || []).forEach(m => {
+        if (MONTHS_LIST.includes(m)) available.push(m);
+    });
+    
+    // 4. Admin tabs
     if (isAdmin) available.push('Admin Control');
     
     let baseOrder = config.tabOrder || [];
     if (baseOrder.length > 0) {
+      // Filter existing order to only show what is currently available
       const order = baseOrder.filter(t => available.includes(t));
+      // Identify new available tabs that haven't been added to the order yet
       const remaining = available.filter(t => !order.includes(t));
+      // Merge: preserve saved order + append new features at the end
       const fullList = [...order, ...remaining];
+      
       if (isDragging.current && dragIndex !== null && dragCurrentIndex !== null) {
         const liveOrder = [...fullList];
         const [removed] = liveOrder.splice(dragIndex, 1);
@@ -201,8 +214,10 @@ const App: React.FC = () => {
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   }, [validUntil]);
 
+  const isDummyData = habits.length > 0 && habits[0].id === '1' && habits[0].name === INITIAL_HABITS[0].name;
+
   const renderContent = () => {
-    if (isAdmin) return <AdminPage />;
+    if (isAdmin && activeTab === 'Admin Control') return <AdminPage />;
     if (permissionError) return <div className="p-20 text-center font-black">SYNC ERROR.</div>;
     if (userStatus === 'blocked') return <div className="p-20 text-center font-black">ACCESS BLOCKED.</div>;
     if (!isPaid) return <PaymentGate userId={user.uid} userEmail={user.email} onSuccess={() => setIsPaid(true)} />;
@@ -309,6 +324,8 @@ const App: React.FC = () => {
             }}
           />
         );
+      case 'Wallpaper':
+        return <WallpaperView habits={habits} month={MONTHS_LIST[new Date().getMonth()]} />;
       default:
         if (MONTHS_LIST.includes(activeTab)) {
           return <HabitMatrix month={activeTab} year={config.year} habits={habits} weeklyGoals={weeklyGoals.filter(w => w.month === activeTab)} onUpdateWeeklyGoalStatus={()=>{}} onToggleCell={(id, day) => {
@@ -332,6 +349,7 @@ const App: React.FC = () => {
     if (tab === 'Setup') return 'bg-slate-800 text-white';
     if (tab === 'Annual Goals') return 'bg-[#76C7C0] text-white';
     if (tab === 'Finance Tracking') return 'bg-indigo-600 text-white';
+    if (tab === 'Wallpaper') return 'bg-[#020617] text-[#76C7C0] border border-white/10 ring-1 ring-white/20';
     const monthIdx = MONTHS_LIST.indexOf(tab);
     const colors = ['bg-blue-600', 'bg-purple-600', 'bg-amber-500', 'bg-emerald-600', 'bg-rose-600', 'bg-sky-500', 'bg-violet-600', 'bg-orange-600', 'bg-teal-600', 'bg-pink-600', 'bg-indigo-700', 'bg-cyan-600'];
     return monthIdx !== -1 ? colors[monthIdx % colors.length] : 'bg-slate-200 text-slate-600';
@@ -344,36 +362,38 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen pb-32">
+    <div className={`min-h-screen ${activeTab === 'Wallpaper' ? 'bg-[#020617]' : 'pb-32'}`}>
       <div className="planner-container">
-        <header className="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-12 p-4 md:p-8 rounded-[1.5rem] md:rounded-[3rem] bg-white border border-slate-100 shadow-sm gap-4 md:gap-6">
-          <div className="flex items-center gap-4 md:gap-6">
-            <div className="w-10 h-10 md:w-16 md:h-16 bg-gray-900 rounded-xl md:rounded-[1.8rem] flex items-center justify-center text-white font-black text-xl md:text-3xl shadow-xl animate-float">N</div>
-            <div>
-              <h1 className="text-xl md:text-6xl font-black tracking-tighter text-gray-900 leading-none">{config.year} NextYou21</h1>
-              <p className="text-[7px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.5em] text-slate-400 mt-1 md:mt-2">Daily Routine & Finance Console</p>
+        {activeTab !== 'Wallpaper' && (
+          <header className="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-12 p-4 md:p-8 rounded-[1.5rem] md:rounded-[3rem] bg-white border border-slate-100 shadow-sm gap-4 md:gap-6">
+            <div className="flex items-center gap-4 md:gap-6">
+              <div className="w-10 h-10 md:w-16 md:h-16 bg-gray-900 rounded-xl md:rounded-[1.8rem] flex items-center justify-center text-white font-black text-xl md:text-3xl shadow-xl animate-float">N</div>
+              <div>
+                <h1 className="text-xl md:text-6xl font-black tracking-tighter text-gray-900 leading-none">{config.year} NextYou21</h1>
+                <p className="text-[7px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.5em] text-slate-400 mt-1 md:mt-2">Daily Routine & Finance Console</p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-slate-50 pt-3 md:pt-0">
-             <div className="text-left md:text-right">
-               <div className={`inline-flex items-center gap-2 ${syncing ? 'bg-amber-400' : 'bg-[#76C7C0]'} text-white px-3 md:px-5 py-1 md:py-2 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest shadow-lg transition-all`}>
-                 <div className={`w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-white ${syncing ? 'animate-ping' : ''}`} />
-                 {syncing ? 'Saving' : 'Saved'}
+            <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-slate-50 pt-3 md:pt-0">
+               <div className="text-left md:text-right">
+                 <div className={`inline-flex items-center gap-2 ${syncing ? 'bg-amber-400' : 'bg-[#76C7C0]'} text-white px-3 md:px-5 py-1 md:py-2 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest shadow-lg transition-all`}>
+                   <div className={`w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-white ${syncing ? 'animate-ping' : ''}`} />
+                   {syncing ? 'Saving' : 'Saved'}
+                 </div>
+                 <p className="hidden md:block text-[11px] font-black text-slate-400 mt-2 uppercase">{user.displayName || user.email}</p>
+                 <p className="md:hidden text-[9px] font-black text-slate-300 mt-1 uppercase truncate max-w-[120px]">{user.displayName || user.email.split('@')[0]}</p>
                </div>
-               <p className="hidden md:block text-[11px] font-black text-slate-400 mt-2 uppercase">{user.displayName || user.email}</p>
-               <p className="md:hidden text-[9px] font-black text-slate-300 mt-1 uppercase truncate max-w-[120px]">{user.displayName || user.email.split('@')[0]}</p>
-             </div>
-             <button onClick={handleLogout} className="p-3 md:p-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-[1.5rem] hover:bg-rose-50 hover:text-rose-600 transition-all shadow-sm group">
-               <svg className="w-4 h-4 md:w-5 md:h-5 text-slate-400 group-hover:text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" /></svg>
-             </button>
-          </div>
-        </header>
+               <button onClick={handleLogout} className="p-3 md:p-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-[1.5rem] hover:bg-rose-50 hover:text-rose-600 transition-all shadow-sm group">
+                 <svg className="w-4 h-4 md:w-5 md:h-5 text-slate-400 group-hover:text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" /></svg>
+               </button>
+            </div>
+          </header>
+        )}
 
-        <main className="min-h-[50vh]">{renderContent()}</main>
+        <main className={`${activeTab === 'Wallpaper' ? '' : 'min-h-[50vh]'}`}>{renderContent()}</main>
 
         {(isPaid && userStatus === 'approved' && !permissionError) && (
           <nav 
-            className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-200 z-[60] px-6 flex items-end h-[68px] overflow-x-auto no-scrollbar shadow-xl select-none"
+            className={`fixed bottom-0 left-0 right-0 z-[60] px-6 flex items-end h-[68px] overflow-x-auto no-scrollbar shadow-xl select-none transition-all duration-500 ${activeTab === 'Wallpaper' ? 'bg-black/60 backdrop-blur-3xl border-t border-white/10 opacity-60 hover:opacity-100' : 'bg-white/80 backdrop-blur-xl border-t border-slate-200'}`}
             onMouseUp={handleDragEnd} onMouseLeave={handleDragEnd} onTouchEnd={handleDragEnd}
           >
             <div className="flex items-end h-full gap-1 relative min-w-full">
@@ -384,7 +404,7 @@ const App: React.FC = () => {
                   className={`relative px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer whitespace-nowrap ${activeTab === tab ? `${getTabTheme(tab)} rounded-t-xl scale-y-105 origin-bottom shadow-lg z-10` : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50/50'}`}
                   style={{ transform: dragIndex === idx ? 'translateY(-12px)' : undefined, opacity: dragIndex === idx ? 0.3 : 1 }}
                 >
-                  {tab}
+                  {tab === 'Wallpaper' ? '📺 AOD' : tab}
                 </button>
               ))}
             </div>
