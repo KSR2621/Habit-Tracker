@@ -1,246 +1,245 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Habit } from '../types';
-import { 
-  AreaChart, Area, ResponsiveContainer, XAxis, YAxis, 
-  Radar, RadarChart, PolarGrid, PolarAngleAxis 
-} from 'recharts';
 import { MONTHS_LIST } from '../constants';
-import { getHabitInsights } from '../services/geminiService';
 
 interface WallpaperViewProps {
   habits: Habit[];
-  month: string;
 }
 
-export const WallpaperView: React.FC<WallpaperViewProps> = ({ habits, month }) => {
+export const WallpaperView: React.FC<WallpaperViewProps> = ({ habits }) => {
   const [time, setTime] = useState(new Date());
-  const [insight, setInsight] = useState("Initializing strategic analysis...");
-  const [isMinimal, setIsMinimal] = useState(false);
-  const [showGuide, setShowGuide] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
+  // 1. Handle Screen Resize
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // 2. Clock Timer
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    const loadInsight = async () => {
-      const text = await getHabitInsights(habits);
-      setInsight(text);
-    };
-    loadInsight();
-  }, [habits]);
+  // 3. Data Processing Engine
+  const { points, stats } = useMemo(() => {
+    const year = new Date().getFullYear();
+    const today = new Date();
+    const startOfYear = new Date(year, 0, 1);
+    const dayOffset = startOfYear.getDay(); // 0 = Sun
+    
+    let totalScore = 0;
+    let daysCounted = 0;
+    const dataPoints = [];
 
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(err => {
-        alert(`Error attempting to enable full-screen mode: ${err.message}`);
-      });
+    const d = new Date(year, 0, 1);
+    
+    while (d.getFullYear() === year) {
+        const diff = d.getTime() - startOfYear.getTime();
+        const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
+        
+        // Grid Logic
+        const colIndex = Math.floor((dayOfYear + dayOffset - 1) / 7);
+        const rowIndex = d.getDay();
+
+        // Stats
+        const monthName = MONTHS_LIST[d.getMonth()];
+        const dayNum = d.getDate();
+        const activeHabits = habits.filter(h => h.activeMonths.includes(monthName));
+        const completedCount = activeHabits.filter(h => h.history[monthName]?.[dayNum]).length;
+        const activeCount = activeHabits.length;
+        const ratio = activeCount > 0 ? completedCount / activeCount : 0;
+        
+        const isToday = d.getDate() === today.getDate() && d.getMonth() === today.getMonth();
+        const isFuture = d > today;
+
+        if (d <= today && activeCount > 0) {
+            totalScore += ratio;
+            daysCounted++;
+        }
+
+        dataPoints.push({
+            dayOfYear,
+            dayNum,
+            monthName,
+            ratio,
+            isToday,
+            isFuture,
+            colIndex,
+            rowIndex
+        });
+
+        d.setDate(d.getDate() + 1);
+    }
+
+    const efficiency = daysCounted > 0 ? Math.round((totalScore / daysCounted) * 100) : 0;
+    
+    // Days Remaining Calculation
+    const endOfYear = new Date(year, 11, 31);
+    const timeDiff = endOfYear.getTime() - today.getTime();
+    const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24));
+    const daysPassed = Math.floor((today.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
+
+    return { points: dataPoints, stats: { efficiency, daysRemaining, daysPassed } };
+  }, [habits, time]);
+
+  // 4. SVG Config
+  const CELL_SIZE = 12;
+  const GAP = 2;
+  const RADIUS = 6;
+  
+  // Adaptive ViewBox
+  const width = isMobile ? 27 * (CELL_SIZE + GAP) : 53 * (CELL_SIZE + GAP);
+  const height = isMobile ? 16 * (CELL_SIZE + GAP) : 7 * (CELL_SIZE + GAP);
+
+  const getPosition = (col: number, row: number) => {
+    if (!isMobile) {
+        return { x: col * (CELL_SIZE + GAP), y: row * (CELL_SIZE + GAP) };
     } else {
-      document.exitFullscreen();
+        const isSecondHalf = col >= 27;
+        const mobileCol = isSecondHalf ? col - 27 : col;
+        const yOffset = isSecondHalf ? (8 * (CELL_SIZE + GAP)) : 0; 
+        return { x: mobileCol * (CELL_SIZE + GAP), y: row * (CELL_SIZE + GAP) + yOffset };
     }
   };
 
-  const stats = useMemo(() => {
-    const today = time.getDate();
-    const todayActive = habits.filter(h => h.activeMonths.includes(month));
-    const todayDone = todayActive.filter(h => h.history[month]?.[today]).length;
-    const efficiency = todayActive.length > 0 ? Math.round((todayDone / todayActive.length) * 100) : 0;
-
-    const categories = ['Mind', 'Body', 'Spirit', 'Work'];
-    const balanceData = categories.map(cat => {
-      const catHabits = habits.filter(h => h.category === cat);
-      const done = catHabits.reduce((acc, h) => acc + Object.values(h.history[month] || {}).filter(Boolean).length, 0);
-      const possible = Math.max(1, catHabits.length * 31);
-      return { subject: cat, A: Math.round((done / possible) * 100), fullMark: 100 };
-    });
-
-    const weeklyTrend = [0, 1, 2, 3, 4, 5, 6].map(offset => {
-      const d = new Date();
-      d.setDate(d.getDate() - (6 - offset));
-      const dateNum = d.getDate();
-      const mName = MONTHS_LIST[d.getMonth()];
-      const done = habits.filter(h => h.history[mName]?.[dateNum]).length;
-      return { name: d.toLocaleDateString('en-US', { weekday: 'narrow' }), count: done };
-    });
-
-    return { efficiency, balanceData, weeklyTrend, activeCount: todayActive.length, doneCount: todayDone };
-  }, [habits, month, time]);
+  const getColors = (p: any) => {
+    if (p.isFuture) return { fill: '#0f0f10', text: '#3f3f46', stroke: '#27272a' }; // Almost black
+    if (p.isToday) return { fill: '#ffffff', text: '#000000', stroke: '#ffffff' }; // White
+    
+    if (p.ratio === 0) return { fill: '#27272a', text: '#52525b', stroke: 'none' };
+    if (p.ratio < 0.5) return { fill: '#1e3a8a', text: '#93c5fd', stroke: 'none' }; // Dark Blue
+    if (p.ratio < 0.8) return { fill: '#2563eb', text: '#ffffff', stroke: 'none' }; // Blue
+    return { fill: '#06b6d4', text: '#000000', stroke: 'none' }; // Cyan
+  };
 
   return (
-    <div className="fixed inset-0 bg-[#020617] text-white z-[40] flex flex-col p-8 md:p-12 overflow-hidden transition-all duration-1000">
-      {/* Animated Background Gradients */}
-      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#76C7C0]/10 rounded-full blur-[120px] animate-pulse" />
-      <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '2s' }} />
-
-      {/* FLOATING SETTINGS TRIGGER */}
-      <div className="absolute top-8 right-8 z-[60] flex gap-3">
-        <button 
-          onClick={() => setShowGuide(true)}
-          className="w-12 h-12 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all shadow-2xl group"
-          title="Wallpaper Setup Guide"
-        >
-          <svg className="w-5 h-5 text-[#76C7C0] group-hover:rotate-45 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-        </button>
-        <button 
-          onClick={() => setIsMinimal(!isMinimal)}
-          className={`w-12 h-12 backdrop-blur-xl border rounded-2xl flex items-center justify-center transition-all shadow-2xl ${isMinimal ? 'bg-[#76C7C0] border-[#76C7C0] text-gray-900' : 'bg-white/5 border-white/10 text-[#76C7C0] hover:bg-white/20'}`}
-          title="Minimal Mode"
-        >
-          {isMinimal ? '🎯' : '📺'}
-        </button>
-      </div>
-
-      {/* TACTICAL CLOCK */}
-      <header className={`relative z-10 flex flex-col items-center justify-center transition-all duration-1000 ${isMinimal ? 'mt-20 scale-110' : 'mb-12'}`}>
-        <h1 className="text-8xl md:text-[12rem] font-black tracking-tighter italic leading-none text-white/90 drop-shadow-2xl">
-          {time.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}
-        </h1>
-        <div className="flex items-center gap-4 mt-6">
-          <div className="h-px w-12 bg-indigo-500/50" />
-          <p className="text-[12px] md:text-[14px] font-black uppercase tracking-[0.8em] text-indigo-400 italic">
-            {time.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-          </p>
-          <div className="h-px w-12 bg-indigo-500/50" />
-        </div>
-      </header>
-
-      {/* MAIN DATA GRID */}
-      <div className={`flex-1 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center transition-all duration-1000 ${isMinimal ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100'}`}>
-        
-        {/* LEFT: Balance Radar */}
-        <div className="lg:col-span-3 h-[400px] flex flex-col justify-center bg-white/5 backdrop-blur-3xl rounded-[4rem] p-10 border border-white/5 shadow-2xl">
-           <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-8 italic text-center">Biometric Equilibrium</h3>
-           <div className="h-full w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={stats.balanceData}>
-                  <PolarGrid stroke="#ffffff10" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 800 }} />
-                  <Radar name="Balance" dataKey="A" stroke="#76C7C0" fill="#76C7C0" fillOpacity={0.2} animationDuration={2500} />
-                </RadarChart>
-              </ResponsiveContainer>
-           </div>
-        </div>
-
-        {/* CENTER: Efficiency Pulse */}
-        <div className="lg:col-span-6 flex flex-col items-center justify-center py-10">
-           <div className={`relative w-full aspect-square max-w-[450px] transition-transform duration-1000 ${isMinimal ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-100 scale-125' : ''}`}>
-              {/* Progress Ring */}
-              <svg className="w-full h-full transform -rotate-90 filter drop-shadow-[0_0_30px_rgba(118,199,192,0.2)]" viewBox="0 0 240 240">
-                <circle cx="120" cy="120" r="100" stroke="#ffffff05" strokeWidth="4" fill="transparent" />
-                <circle 
-                  cx="120" cy="120" r="100" 
-                  stroke="url(#wallpaperGradLarge)" strokeWidth="10" fill="transparent"
-                  strokeDasharray="628" 
-                  strokeDashoffset={628 - (628 * stats.efficiency / 100)}
-                  strokeLinecap="round"
-                  className="transition-all duration-[3000ms] ease-out"
-                />
-                <defs>
-                  <linearGradient id="wallpaperGradLarge" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#76C7C0" />
-                    <stop offset="100%" stopColor="#6366F1" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.6em] mb-4 italic">Daily Velocity</p>
-                <div className="flex items-baseline">
-                  <span className="text-[10rem] font-black italic tracking-tighter text-white drop-shadow-2xl">{stats.efficiency}</span>
-                  <span className="text-4xl font-black text-[#76C7C0] mb-6 ml-2">%</span>
-                </div>
-                <div className="mt-4 px-6 py-2 bg-white/10 rounded-full border border-white/10 text-[11px] font-black uppercase tracking-[0.3em] text-[#76C7C0]">
-                  {stats.doneCount} / {stats.activeCount} Rituals
-                </div>
-              </div>
-           </div>
-        </div>
-
-        {/* RIGHT: Weekly Trend */}
-        <div className="lg:col-span-3 h-[400px] flex flex-col justify-center bg-white/5 backdrop-blur-3xl rounded-[4rem] p-10 border border-white/5 shadow-2xl">
-           <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-8 italic text-center">Tactical Flow</h3>
-           <div className="h-full w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={stats.weeklyTrend}>
-                  <defs>
-                    <linearGradient id="wallTrendWall" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="name" hide />
-                  <YAxis hide />
-                  <Area type="monotone" dataKey="count" stroke="#6366F1" strokeWidth={5} fill="url(#wallTrendWall)" animationDuration={3000} />
-                </AreaChart>
-              </ResponsiveContainer>
-           </div>
-           <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest text-center mt-6">7-Day Deployment History</p>
-        </div>
-      </div>
-
-      {/* STRATEGIC INSIGHT FOOTER */}
-      <footer className={`relative z-10 bg-white/5 border border-white/5 p-10 rounded-[4rem] backdrop-blur-2xl transition-all duration-1000 ${isMinimal ? 'translate-y-40 opacity-0' : 'mt-12 opacity-100'}`}>
-         <div className="flex items-center gap-8">
-            <div className="w-16 h-16 rounded-3xl bg-[#76C7C0] text-gray-900 flex items-center justify-center text-3xl font-black shadow-xl shadow-[#76C7C0]/20 animate-bounce">
-               ⚡
-            </div>
-            <div className="flex-1">
-               <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.5em] mb-2 italic">Architect Briefing</p>
-               <p className="text-3xl font-black italic tracking-tight text-white/95 leading-snug">
-                 "{insight}"
-               </p>
+    <div className="fixed inset-0 w-screen h-screen bg-[#050505] text-white font-sans flex flex-col p-4 md:p-6 overflow-hidden select-none">
+      
+      {/* --- TOP BAR (DASHBOARD) --- */}
+      <header className="flex-none grid grid-cols-3 items-end pb-4 border-b border-[#222] mb-4">
+         
+         {/* LEFT: Date & Year */}
+         <div className="flex flex-col justify-end">
+            <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-none text-white">
+                {time.getFullYear()}
+            </h1>
+            <div className="text-xs md:text-sm font-bold text-neutral-500 uppercase tracking-widest mt-1">
+                {time.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })}
             </div>
          </div>
-      </footer>
 
-      {/* SETUP GUIDE MODAL */}
-      {showGuide && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 md:p-12 animate-in fade-in zoom-in-95 duration-500">
-           <div className="absolute inset-0 bg-black/80 backdrop-blur-3xl" onClick={() => setShowGuide(false)} />
-           <div className="relative w-full max-w-4xl bg-white/5 border border-white/10 rounded-[4rem] p-12 md:p-20 shadow-2xl overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[100px]" />
-              
-              <div className="flex justify-between items-start mb-16">
-                <div>
-                   <h2 className="text-4xl md:text-6xl font-black italic tracking-tighter uppercase mb-4">Permanent Wallpaper Protocol</h2>
-                   <div className="h-2 w-24 bg-[#76C7C0] rounded-full" />
+         {/* CENTER: Time (Hidden on very small screens, centered on desktop) */}
+         <div className="flex flex-col items-center justify-end">
+            <div className="text-3xl md:text-5xl font-mono font-medium text-white tabular-nums tracking-tight leading-none">
+                {time.toLocaleTimeString('en-US', { hour12: false })}
+            </div>
+            <div className="text-[10px] md:text-xs font-bold text-cyan-500 uppercase tracking-widest mt-1 animate-pulse">
+                System Active
+            </div>
+         </div>
+
+         {/* RIGHT: Stats */}
+         <div className="flex flex-col items-end justify-end">
+             {/* Countdown */}
+            <div className="flex items-baseline gap-1">
+                <span className="text-2xl md:text-4xl font-bold text-white tabular-nums leading-none">
+                    {stats.daysRemaining}
+                </span>
+                <span className="text-[10px] md:text-xs font-bold text-neutral-500 uppercase">Days Left</span>
+            </div>
+            
+            {/* Efficiency */}
+            <div className="flex items-center gap-2 mt-1">
+                <div className="h-1 w-12 bg-neutral-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-cyan-400" style={{ width: `${stats.efficiency}%` }}></div>
                 </div>
-                <button onClick={() => setShowGuide(false)} className="text-4xl text-white/20 hover:text-white transition-colors">×</button>
-              </div>
+                <div className="text-[10px] md:text-xs font-bold text-cyan-400 uppercase tracking-wider">
+                    {stats.efficiency}% Efficiency
+                </div>
+            </div>
+         </div>
+      </header>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                 <div className="space-y-10">
-                    <div className="bg-white/5 p-8 rounded-[3rem] border border-white/5">
-                       <h3 className="text-[12px] font-black text-indigo-400 uppercase tracking-widest mb-4 italic">STEP 1: Windows (Best Method)</h3>
-                       <p className="text-slate-400 text-sm leading-relaxed mb-6 font-medium">
-                         Install <span className="text-white font-black">Lively Wallpaper</span> (Free/Open Source). Select "Add Wallpaper" -> "URL" and paste this app's URL. It will render natively behind your icons.
-                       </p>
-                       <button onClick={toggleFullscreen} className="w-full bg-[#76C7C0] text-gray-900 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
-                          Enter Fullscreen Mode (F11)
-                       </button>
-                    </div>
+      {/* --- SVG GRID --- */}
+      <main className="flex-1 w-full h-full flex items-center justify-center min-h-0 relative">
+        <svg 
+            viewBox={`0 0 ${width} ${height}`} 
+            preserveAspectRatio="xMidYMid meet" 
+            className="w-full h-full max-h-full drop-shadow-[0_0_10px_rgba(255,255,255,0.05)]"
+        >
+            {points.map((p, i) => {
+                const pos = getPosition(p.colIndex, p.rowIndex);
+                const colors = getColors(p);
+                
+                return (
+                    <g key={i} className="group transition-all duration-300">
+                        {/* Circle */}
+                        <circle 
+                            cx={pos.x + RADIUS} 
+                            cy={pos.y + RADIUS} 
+                            r={RADIUS} 
+                            fill={colors.fill}
+                            stroke={colors.stroke}
+                            strokeWidth={0.5}
+                            className={`transition-all duration-500 ${p.isToday ? 'animate-pulse' : ''}`}
+                        />
+                        
+                        {/* Day Number (1-365) */}
+                        <text 
+                            x={pos.x + RADIUS} 
+                            y={pos.y + RADIUS} 
+                            dy="0.35em" 
+                            textAnchor="middle" 
+                            fontSize={p.dayOfYear > 99 ? "4.5" : "5.5"}
+                            fill={colors.text}
+                            fontWeight="800"
+                            style={{ pointerEvents: 'none' }}
+                        >
+                            {p.dayOfYear}
+                        </text>
 
-                    <div className="bg-white/5 p-8 rounded-[3rem] border border-white/5">
-                       <h3 className="text-[12px] font-black text-indigo-400 uppercase tracking-widest mb-4 italic">STEP 2: Mac / Universal</h3>
-                       <p className="text-slate-400 text-sm leading-relaxed font-medium">
-                         Use a dedicated space for this tab. Enable <span className="text-white font-black">Minimal Mode</span> using the 🎯 button. Switch between work and wallpaper using three-finger trackpad swipes.
-                       </p>
-                    </div>
-                 </div>
+                        {/* Tooltip Trigger Area */}
+                        <rect x={pos.x} y={pos.y} width={CELL_SIZE} height={CELL_SIZE} fill="transparent" />
+                        
+                        {/* SVG Tooltip */}
+                        <g className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                             <rect 
+                                x={pos.x - 24} 
+                                y={pos.y - 20} 
+                                width="60" 
+                                height="16" 
+                                rx="3" 
+                                fill="#111" 
+                                stroke="#333"
+                                strokeWidth="0.5"
+                             />
+                             <text x={pos.x + 6} y={pos.y - 9} fontSize="6" fill="#fff" textAnchor="middle" fontWeight="bold">
+                                {p.monthName.substring(0,3)} {p.dayNum} • {Math.round(p.ratio*100)}%
+                             </text>
+                        </g>
+                    </g>
+                );
+            })}
+        </svg>
+      </main>
 
-                 <div className="flex flex-col justify-center items-center text-center bg-[#76C7C0]/5 rounded-[4rem] p-10 border border-[#76C7C0]/10">
-                    <div className="w-24 h-24 bg-[#76C7C0] rounded-[2.5rem] flex items-center justify-center text-5xl mb-10 shadow-2xl shadow-[#76C7C0]/20">📺</div>
-                    <p className="text-2xl font-black italic text-white tracking-tight mb-4">Live Performance Monitor</p>
-                    <p className="text-slate-400 text-[11px] uppercase font-black tracking-[0.3em]">Operational Fidelity: 99.9%</p>
-                    <p className="mt-10 text-slate-500 text-[10px] leading-loose max-w-xs">
-                      Note: Browsers do not allow webpages to be set as backgrounds natively for security. You must use the "Lively" or "Dashboard" method to bypass this restriction.
-                    </p>
-                 </div>
-              </div>
-           </div>
-        </div>
-      )}
+      {/* --- FOOTER (Minimal Legend) --- */}
+      <footer className="flex-none pt-2 flex justify-center items-center">
+         <div className="flex items-center gap-3 bg-[#111] border border-[#222] px-4 py-1 rounded-full">
+            <span className="text-[9px] font-bold uppercase text-neutral-500">Less</span>
+            <div className="flex gap-1">
+               <div className="w-2 h-2 rounded-full bg-[#27272a]" />
+               <div className="w-2 h-2 rounded-full bg-[#1e3a8a]" />
+               <div className="w-2 h-2 rounded-full bg-[#2563eb]" />
+               <div className="w-2 h-2 rounded-full bg-[#06b6d4] shadow-[0_0_5px_rgba(6,182,212,0.8)]" />
+            </div>
+            <span className="text-[9px] font-bold uppercase text-neutral-500">More</span>
+         </div>
+      </footer>
     </div>
   );
 };
